@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Durian IoT Agriculture Dashboard</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+    <!-- Header -->
+    <header
+      class="max-w-7xl mx-auto flex justify-between items-center pb-6 mb-6 border-b border-slate-800"
+    >
+      <div>
+        <h1 class="text-2xl font-bold text-emerald-400">
+          Giám Sát Vườn Sầu Riêng IoT
+        </h1>
+        <p class="text-sm text-slate-400">
+          Trạng thái kết nối Backend:
+          <span id="status" class="text-amber-400 font-semibold"
+            >Đang kết nối...</span
+          >
+        </p>
+      </div>
+      <button
+        onclick="fetchData()"
+        class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm transition"
+      >
+        Làm mới dữ liệu
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto space-y-6">
+      <!-- Cards Hiển thị Cảm biến mới nhất -->
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <!-- Card Nhiệt độ -->
+        <div
+          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+        >
+          <span class="text-xs text-slate-400 uppercase tracking-wider"
+            >Nhiệt Độ Không Khí</span
+          >
+          <div class="text-3xl font-bold text-rose-400 mt-2">
+            <span id="temp">--</span> °C
+          </div>
+        </div>
+
+        <!-- Card Độ ẩm KK -->
+        <div
+          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+        >
+          <span class="text-xs text-slate-400 uppercase tracking-wider"
+            >Độ Ẩm Không Khí</span
+          >
+          <div class="text-3xl font-bold text-sky-400 mt-2">
+            <span id="hum">--</span> %
+          </div>
+        </div>
+
+        <!-- Card Độ ẩm đất -->
+        <div
+          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+        >
+          <span class="text-xs text-slate-400 uppercase tracking-wider"
+            >Độ Ẩm Đất</span
+          >
+          <div class="text-3xl font-bold text-amber-500 mt-2">
+            <span id="soil">--</span> %
+          </div>
+        </div>
+
+        <!-- Card Cường độ ánh sáng -->
+        <div
+          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+        >
+          <span class="text-xs text-slate-400 uppercase tracking-wider"
+            >Cường Độ Ánh Sáng</span
+          >
+          <div class="text-3xl font-bold text-yellow-400 mt-2">
+            <span id="light">--</span> Lux
+          </div>
+        </div>
+
+        <!-- Card Pin -->
+        <div
+          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+        >
+          <span class="text-xs text-slate-400 uppercase tracking-wider"
+            >Dung Lượng Pin</span
+          >
+          <div class="text-3xl font-bold text-emerald-400 mt-2">
+            <span id="battery">--</span> %
+          </div>
+        </div>
+      </div>
+
+      <!-- Khung Biểu đồ Lịch sử -->
+      <div
+        class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg"
+      >
+        <h2 class="text-lg font-semibold text-slate-200 mb-4">
+          Biểu Đồ Lịch Sử Dữ Liệu Cảm Biến
+        </h2>
+        <div class="relative h-80 w-full">
+          <canvas id="sensorChart"></canvas>
+        </div>
+      </div>
+    </main>
+
+    <!-- Script điều khiển -->
+    <script src="app.js"></script>
+  </body>
+</html>
