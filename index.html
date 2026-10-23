@@ -21,32 +21,11 @@
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <style>
-      .glass {
-        background: rgba(30, 41, 59, 0.8);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      #map {
-        height: 260px;
-        width: 100%;
-        border-radius: 0.75rem;
-        z-index: 1;
-      }
-      .leaflet-popup-content-wrapper {
-        background: #1e293b;
-        color: #f8fafc;
-        border: 1px solid #334155;
-      }
-      .leaflet-popup-tip {
-        background: #1e293b;
-      }
-    </style>
+    <!-- Custom CSS File -->
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
-    <!-- ========================================== -->
-    <!-- 1. MÀN HÌNH ĐĂNG NHẬP (TRUY CẬP BAN ĐẦU)   -->
-    <!-- ========================================== -->
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP -->
     <div
       id="login-screen"
       class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950"
@@ -61,7 +40,6 @@
           class="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"
         ></div>
 
-        <!-- LOGO SẦU RIÊNG SVG -->
         <div class="flex flex-col items-center text-center space-y-3">
           <div
             class="w-16 h-16 rounded-2xl bg-amber-500/10 p-2.5 flex items-center justify-center border border-amber-500/30 shadow-inner"
@@ -84,8 +62,6 @@
               <polygon points="32,8 26,16 38,16" fill="#15803d" />
               <circle cx="22" cy="28" r="2" fill="#ca8a04" />
               <circle cx="42" cy="28" r="2" fill="#ca8a04" />
-              <circle cx="18" cy="36" r="2" fill="#ca8a04" />
-              <circle cx="46" cy="36" r="2" fill="#ca8a04" />
             </svg>
           </div>
           <div>
@@ -100,7 +76,6 @@
           </div>
         </div>
 
-        <!-- FORM ĐĂNG NHẬP -->
         <form
           onsubmit="
             event.preventDefault();
@@ -119,7 +94,7 @@
               <input
                 id="login-username"
                 type="text"
-                placeholder="Nhập username (ví dụ: admin)"
+                placeholder="Nhập username"
                 required
                 class="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
               />
@@ -161,15 +136,11 @@
       </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 2. MÀN HÌNH DASHBOARD (CHỈ MỞ KHI ĐÃ AUTH)-->
-    <!-- ========================================== -->
+    <!-- 2. MÀN HÌNH DASHBOARD -->
     <div id="dashboard-screen" class="hidden min-h-screen flex flex-col">
-      <!-- HEADER -->
       <header
         class="glass sticky top-0 z-40 px-6 py-3.5 flex flex-wrap justify-between items-center shadow-lg gap-3"
       >
-        <!-- Logo & Title -->
         <div class="flex items-center space-x-3">
           <div
             class="w-10 h-10 rounded-full bg-amber-500/10 p-1.5 flex items-center justify-center border border-amber-500/30 shadow-inner"
@@ -190,8 +161,6 @@
                 stroke-linecap="round"
               />
               <polygon points="32,8 26,16 38,16" fill="#15803d" />
-              <circle cx="22" cy="28" r="2" fill="#ca8a04" />
-              <circle cx="42" cy="28" r="2" fill="#ca8a04" />
             </svg>
           </div>
           <div>
@@ -207,7 +176,6 @@
         </div>
 
         <div class="flex items-center space-x-3 text-xs">
-          <!-- ĐỒNG HỒ THỜI GIAN THỰC -->
           <div
             class="hidden lg:flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg text-emerald-300 border border-slate-700/80 font-mono"
           >
@@ -217,7 +185,6 @@
             >
           </div>
 
-          <!-- Widget Thời tiết -->
           <div
             id="weather-card"
             class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700/80"
@@ -229,7 +196,6 @@
             <span id="weather-temp" class="font-bold text-amber-300">--°C</span>
           </div>
 
-          <!-- Nút Xuất Excel -->
           <button
             onclick="exportExcel()"
             class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition shadow"
@@ -238,7 +204,6 @@
             <span class="hidden sm:inline">Xuất Báo Cáo</span>
           </button>
 
-          <!-- TÊN TÀI KHOẢN & NÚT ĐĂNG XUẤT -->
           <div
             class="flex items-center space-x-2 bg-slate-800/90 pl-3 pr-1.5 py-1 rounded-lg border border-slate-700/80"
           >
@@ -258,11 +223,9 @@
         </div>
       </header>
 
-      <!-- MAIN CONTENT -->
       <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
         <!-- QUẢN LÝ MASTER NODE & BẢN ĐỒ -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- LEAFLET MAP -->
           <div
             class="lg:col-span-2 glass p-5 rounded-2xl space-y-4 border border-slate-700/60"
           >
@@ -299,7 +262,6 @@
             </p>
           </div>
 
-          <!-- THỜI TIẾT CHI TIẾT -->
           <div
             class="glass p-5 rounded-2xl space-y-4 flex flex-col justify-between border border-slate-700/60"
           >
@@ -446,7 +408,7 @@
           </div>
         </div>
 
-        <!-- BẢNG BẬT/TẮT MÁY BƠM DÀNH CHO CÁC NODE CON -->
+        <!-- BẢNG ĐIỀU KHIỂN BƠM -->
         <div class="glass p-5 rounded-2xl space-y-4 border border-slate-700/60">
           <div class="flex justify-between items-center flex-wrap gap-2">
             <h2
@@ -469,7 +431,7 @@
           ></div>
         </div>
 
-        <!-- BIỂU ĐỒ CHART -->
+        <!-- BIỂU ĐỒ -->
         <div class="glass p-5 rounded-2xl space-y-3 border border-slate-700/60">
           <h2
             class="text-base font-bold text-slate-200 flex items-center space-x-2"
@@ -483,7 +445,7 @@
         </div>
       </main>
 
-      <!-- FLOATING CHATBOT AI -->
+      <!-- CHATBOT AI -->
       <div class="fixed bottom-6 right-6 z-50">
         <button
           onclick="toggleChatbox()"
@@ -543,369 +505,8 @@
       </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 3. JAVASCRIPT SYSTEM LOGIC                 -->
-    <!-- ========================================== -->
-    <script>
-      const API_BASE = "https://durian-iot-backend.onrender.com/api/v1";
-
-      const MASTER_NODES_DATA = {
-        master_1: {
-          name: "Master 01 - Tiền Giang",
-          location: "Tiền Giang",
-          lat: 10.3563,
-          lng: 106.3631,
-          childNodes: ["node_1", "node_2", "node_3"],
-        },
-        master_2: {
-          name: "Master 02 - Bến Tre",
-          location: "Ben Tre",
-          lat: 10.2431,
-          lng: 106.3751,
-          childNodes: ["node_4", "node_5", "node_6"],
-        },
-        master_3: {
-          name: "Master 03 - Lâm Đồng",
-          location: "Da Lat",
-          lat: 11.9404,
-          lng: 108.4583,
-          childNodes: ["node_7", "node_8", "node_9"],
-        },
-      };
-
-      let currentMasterKey = "master_1";
-      let pumpStates = {};
-      let map,
-        markers = {};
-      let isSystemInitialized = false;
-
-      // --- AUTH & MÀN HÌNH MỜ/HIỆN ---
-      function checkAuthSession() {
-        const token = localStorage.getItem("access_token");
-        const fullName =
-          localStorage.getItem("full_name") || localStorage.getItem("username");
-
-        if (token) {
-          document.getElementById("login-screen").classList.add("hidden");
-          document
-            .getElementById("dashboard-screen")
-            .classList.remove("hidden");
-          if (fullName)
-            document.getElementById("user-display-name").innerText = fullName;
-
-          if (!isSystemInitialized) {
-            initDashboardSystem();
-            isSystemInitialized = true;
-          }
-        } else {
-          document.getElementById("login-screen").classList.remove("hidden");
-          document.getElementById("dashboard-screen").classList.add("hidden");
-        }
-      }
-
-      async function handleLogin() {
-        const uInput = document.getElementById("login-username").value.trim();
-        const pInput = document.getElementById("login-password").value.trim();
-        const errorEl = document.getElementById("login-error-msg");
-        const submitBtn = document.getElementById("login-submit-btn");
-
-        errorEl.classList.add("hidden");
-        submitBtn.disabled = true;
-        submitBtn.innerText = "ĐANG XÁC THỰC...";
-
-        try {
-          const res = await fetch(`${API_BASE}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: uInput, password: pInput }),
-          });
-
-          const data = await res.json();
-          if (res.ok) {
-            localStorage.setItem("access_token", data.access_token);
-            localStorage.setItem("username", data.username);
-            localStorage.setItem("full_name", data.full_name || data.username);
-            checkAuthSession();
-          } else {
-            errorEl.innerText =
-              data.detail || "Tài khoản hoặc mật khẩu không đúng!";
-            errorEl.classList.remove("hidden");
-          }
-        } catch (e) {
-          errorEl.innerText = "Lỗi kết nối tới Server Backend!";
-          errorEl.classList.remove("hidden");
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>ĐĂNG NHẬP HỆ THỐNG</span>`;
-        }
-      }
-
-      function handleLogout() {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("username");
-        localStorage.removeItem("full_name");
-        checkAuthSession();
-      }
-
-      // --- DASHBOARD INIT LOGIC ---
-      function initDashboardSystem() {
-        initChart();
-        initLeafletMap();
-        switchMasterNode("master_1");
-
-        setInterval(updateRealtimeClock, 1000);
-        updateRealtimeClock();
-
-        setInterval(fetchSensorData, 5000);
-      }
-
-      function updateRealtimeClock() {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString("vi-VN", { hour12: false });
-        const dateStr = now.toLocaleDateString("vi-VN");
-        const clockEl = document.getElementById("realtime-clock");
-        if (clockEl) clockEl.innerText = `${timeStr} - ${dateStr}`;
-      }
-
-      function initLeafletMap() {
-        if (map) return;
-        map = L.map("map").setView([10.3563, 106.3631], 8);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 18,
-          attribution: "© OpenStreetMap",
-        }).addTo(map);
-
-        Object.keys(MASTER_NODES_DATA).forEach((key) => {
-          const item = MASTER_NODES_DATA[key];
-          const marker = L.marker([item.lat, item.lng]).addTo(map);
-          marker.bindPopup(`<b>${item.name}</b><br>Khu vực: ${item.location}`);
-
-          marker.on("click", () => {
-            document.getElementById("master-select").value = key;
-            switchMasterNode(key);
-          });
-
-          markers[key] = marker;
-        });
-      }
-
-      function switchMasterNode(masterKey) {
-        currentMasterKey = masterKey;
-        const data = MASTER_NODES_DATA[masterKey];
-
-        document.getElementById("current-master-label").innerText = data.name;
-        document.getElementById("farm-location").innerText = data.location;
-
-        if (map) {
-          map.flyTo([data.lat, data.lng], 10);
-          if (markers[masterKey]) markers[masterKey].openPopup();
-        }
-
-        renderChildNodesUI(data.childNodes);
-        fetchWeather(data.location);
-        fetchSensorData();
-      }
-
-      function renderChildNodesUI(childNodesList) {
-        const container = document.getElementById("child-nodes-container");
-        container.innerHTML = "";
-
-        childNodesList.forEach((nodeId, idx) => {
-          if (pumpStates[nodeId] === undefined) pumpStates[nodeId] = false;
-          const isON = pumpStates[nodeId];
-
-          const cardHTML = `
-                    <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner">
-                        <div>
-                            <p class="font-bold text-emerald-300 text-sm">Gốc Sầu Riêng - Node ${idx + 1}</p>
-                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">Mã thiết bị: ${nodeId}</p>
-                            <p id="status-${nodeId}" class="text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1">
-                                Trạng thái: ${isON ? "🟢 Đang BẬT" : "🔴 Đang TẮT"}
-                            </p>
-                        </div>
-                        <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow">
-                            ${isON ? "TẮT BƠM" : "BẬT BƠM"}
-                        </button>
-                    </div>
-                `;
-          container.innerHTML += cardHTML;
-        });
-      }
-
-      async function fetchSensorData() {
-        try {
-          const res = await fetch(`${API_BASE}/sensors/latest?limit=10`);
-          const data = await res.json();
-          if (data && data.length > 0) {
-            const latest = data[0];
-            document.getElementById("card-temp").innerText =
-              `${latest.temperature ?? "--"} °C`;
-            document.getElementById("card-humidity").innerText =
-              `${latest.humidity ?? "--"} %`;
-            document.getElementById("card-soil").innerText =
-              `${latest.soil_moisture ?? "--"} %`;
-            document.getElementById("card-light").innerText =
-              `${latest.light_lux ?? "--"} Lux`;
-            document.getElementById("card-battery").innerText =
-              `${latest.battery ?? "--"} %`;
-            updateChart(data);
-          }
-        } catch (err) {
-          console.error("Lỗi lấy dữ liệu cảm biến:", err);
-        }
-      }
-
-      async function fetchWeather(cityName = "Tien Giang") {
-        try {
-          const res = await fetch(
-            `${API_BASE}/weather?city=${encodeURIComponent(cityName)}`,
-          );
-          const data = await res.json();
-          const tempVal =
-            data.temp !== undefined && data.temp !== null
-              ? `${data.temp}°C`
-              : "31.5°C";
-          const descVal = data.description || "Nắng nhẹ, mây rải rác";
-
-          document.getElementById("weather-temp").innerText = tempVal;
-          document.getElementById("weather-desc").innerText = descVal;
-          document.getElementById("farm-temp").innerText = tempVal;
-          document.getElementById("farm-humidity").innerText = data.humidity
-            ? `${data.humidity} %`
-            : "75 %";
-          document.getElementById("farm-weather-desc").innerText = descVal;
-        } catch (err) {
-          console.error("Lỗi thời tiết:", err);
-        }
-      }
-
-      async function togglePump(nodeId) {
-        const nextAction = pumpStates[nodeId] ? "OFF" : "ON";
-        try {
-          const res = await fetch(`${API_BASE}/control/pump`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ node_id: nodeId, action: nextAction }),
-          });
-          if (res.ok) {
-            pumpStates[nodeId] = !pumpStates[nodeId];
-            const isON = pumpStates[nodeId];
-            const btn = document.getElementById(`btn-${nodeId}`);
-            const status = document.getElementById(`status-${nodeId}`);
-            if (btn) {
-              btn.innerText = isON ? "TẮT BƠM" : "BẬT BƠM";
-              btn.className = `${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow`;
-            }
-            if (status) {
-              status.innerText = isON
-                ? "Trạng thái: 🟢 Đang BẬT"
-                : "Trạng thái: 🔴 Đang TẮT";
-              status.className = `text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1`;
-            }
-          }
-        } catch (err) {
-          alert("Lỗi kết nối lệnh bơm!");
-        }
-      }
-
-      function exportExcel() {
-        window.open(`${API_BASE}/export/excel`, "_blank");
-      }
-
-      function toggleChatbox() {
-        document.getElementById("chatbox-window").classList.toggle("hidden");
-      }
-
-      async function sendChatMessage() {
-        const input = document.getElementById("chat-input");
-        const msg = input.value.trim();
-        if (!msg) return;
-
-        const chatContainer = document.getElementById("chat-messages");
-        chatContainer.innerHTML += `<div class="bg-emerald-600/80 text-white p-2.5 rounded-xl ml-auto max-w-[85%]">${msg}</div>`;
-        input.value = "";
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-
-        const loadingId = "loading-" + Date.now();
-        chatContainer.innerHTML += `<div id="${loadingId}" class="bg-slate-700/60 text-slate-400 p-2.5 rounded-xl max-w-[85%]">AI đang suy nghĩ...</div>`;
-
-        try {
-          const res = await fetch(`${API_BASE}/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: msg }),
-          });
-          const data = await res.json();
-          document.getElementById(loadingId).remove();
-          chatContainer.innerHTML += `<div class="bg-slate-700/60 text-slate-200 p-2.5 rounded-xl max-w-[85%]">${data.reply}</div>`;
-        } catch (err) {
-          document.getElementById(loadingId).innerText = "Lỗi kết nối tới AI!";
-        }
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-
-      let chart;
-      function initChart() {
-        const ctx = document.getElementById("sensorChart").getContext("2d");
-        chart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: [],
-            datasets: [
-              {
-                label: "Nhiệt độ (°C)",
-                data: [],
-                borderColor: "#f59e0b",
-                backgroundColor: "rgba(245,158,11,0.1)",
-                tension: 0.3,
-                fill: true,
-              },
-              {
-                label: "Độ ẩm đất (%)",
-                data: [],
-                borderColor: "#10b981",
-                backgroundColor: "rgba(16,185,129,0.1)",
-                tension: 0.3,
-                fill: true,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
-            },
-            scales: {
-              x: {
-                ticks: { color: "#64748b" },
-                grid: { color: "rgba(255,255,255,0.05)" },
-              },
-              y: {
-                ticks: { color: "#64748b" },
-                grid: { color: "rgba(255,255,255,0.05)" },
-              },
-            },
-          },
-        });
-      }
-
-      function updateChart(logs) {
-        const reversed = [...logs].reverse();
-        chart.data.labels = reversed.map((l) =>
-          new Date(l.created_at).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        );
-        chart.data.datasets[0].data = reversed.map((l) => l.temperature);
-        chart.data.datasets[1].data = reversed.map((l) => l.soil_moisture);
-        chart.update();
-      }
-
-      // TỰ ĐỘNG KIỂM TRA PHIÊN ĐĂNG NHẬP KHI MỞ TRANG
-      window.onload = checkAuthSession;
-    </script>
+    <!-- CUSTOM JAVASCRIPT FILES -->
+    <script src="js/map.js"></script>
+    <script src="js/app.js"></script>
   </body>
 </html>
