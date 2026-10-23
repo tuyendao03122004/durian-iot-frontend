@@ -3,115 +3,534 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Durian IoT Agriculture Dashboard</title>
-    <!-- TailwindCSS CDN -->
+    <title>Hệ Thống Giám Sát Vườn Sầu Riêng IoT & AI</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+    </style>
   </head>
-  <body class="bg-slate-900 text-slate-100 min-h-screen p-6">
-    <!-- Header -->
+  <body
+    class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans"
+  >
+    <!-- HEADER -->
     <header
-      class="max-w-7xl mx-auto flex justify-between items-center pb-6 mb-6 border-b border-slate-800"
+      class="glass sticky top-0 z-40 px-6 py-4 flex justify-between items-center shadow-lg"
     >
-      <div>
-        <h1 class="text-2xl font-bold text-emerald-400">
-          Giám Sát Vườn Sầu Riêng IoT
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-tree text-emerald-400 text-2xl"></i>
+        <h1
+          class="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent"
+        >
+          Giám Sát Vườn Sầu Riêng IoT & AI
         </h1>
-        <p class="text-sm text-slate-400">
-          Trạng thái kết nối Backend:
-          <span id="status" class="text-amber-400 font-semibold"
-            >Đang kết nối...</span
-          >
-        </p>
       </div>
-      <button
-        onclick="fetchData()"
-        class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm transition"
-      >
-        Làm mới dữ liệu
-      </button>
+      <div class="flex items-center space-x-4">
+        <!-- Widget Thời tiết -->
+        <div
+          id="weather-card"
+          class="hidden sm:flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg text-sm border border-slate-700"
+        >
+          <i class="fa-solid fa-cloud-sun text-amber-400"></i>
+          <span id="weather-desc">Đang tải thời tiết...</span>
+          <span id="weather-temp" class="font-bold text-amber-300">--°C</span>
+        </div>
+
+        <!-- Nút Xuất Excel -->
+        <button
+          onclick="exportExcel()"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition"
+        >
+          <i class="fa-solid fa-file-excel"></i>
+          <span>Xuất Báo Cáo</span>
+        </button>
+
+        <!-- Nút Đăng nhập / User -->
+        <button
+          id="login-btn"
+          onclick="openLoginModal()"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition"
+        >
+          <i class="fa-solid fa-user"></i>
+          <span id="user-label">Đăng Nhập</span>
+        </button>
+      </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto space-y-6">
-      <!-- Cards Hiển thị Cảm biến mới nhất -->
-      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <!-- Card Nhiệt độ -->
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+      <!-- THẺ THỐNG KÊ CẢM BIẾN MỚI NHẤT -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div
-          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-amber-500"
         >
-          <span class="text-xs text-slate-400 uppercase tracking-wider"
-            >Nhiệt Độ Không Khí</span
-          >
-          <div class="text-3xl font-bold text-rose-400 mt-2">
-            <span id="temp">--</span> °C
+          <div>
+            <p class="text-xs text-slate-400 font-medium">Nhiệt Độ Không Khí</p>
+            <p id="card-temp" class="text-2xl font-bold text-amber-400 mt-1">
+              -- °C
+            </p>
           </div>
+          <i
+            class="fa-solid fa-temperature-high text-amber-500/30 text-3xl"
+          ></i>
         </div>
-
-        <!-- Card Độ ẩm KK -->
         <div
-          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-blue-500"
         >
-          <span class="text-xs text-slate-400 uppercase tracking-wider"
-            >Độ Ẩm Không Khí</span
-          >
-          <div class="text-3xl font-bold text-sky-400 mt-2">
-            <span id="hum">--</span> %
+          <div>
+            <p class="text-xs text-slate-400 font-medium">Độ Ẩm Không Khí</p>
+            <p id="card-humidity" class="text-2xl font-bold text-blue-400 mt-1">
+              -- %
+            </p>
           </div>
+          <i class="fa-solid fa-droplet text-blue-500/30 text-3xl"></i>
         </div>
-
-        <!-- Card Độ ẩm đất -->
         <div
-          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-emerald-500"
         >
-          <span class="text-xs text-slate-400 uppercase tracking-wider"
-            >Độ Ẩm Đất</span
-          >
-          <div class="text-3xl font-bold text-amber-500 mt-2">
-            <span id="soil">--</span> %
+          <div>
+            <p class="text-xs text-slate-400 font-medium">
+              Độ Ẩm Đất (Trung Bình)
+            </p>
+            <p id="card-soil" class="text-2xl font-bold text-emerald-400 mt-1">
+              -- %
+            </p>
           </div>
+          <i class="fa-solid fa-plant-wilt text-emerald-500/30 text-3xl"></i>
         </div>
-
-        <!-- Card Cường độ ánh sáng -->
         <div
-          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-yellow-400"
         >
-          <span class="text-xs text-slate-400 uppercase tracking-wider"
-            >Cường Độ Ánh Sáng</span
-          >
-          <div class="text-3xl font-bold text-yellow-400 mt-2">
-            <span id="light">--</span> Lux
+          <div>
+            <p class="text-xs text-slate-400 font-medium">Cường Độ Ánh Sáng</p>
+            <p id="card-light" class="text-2xl font-bold text-yellow-300 mt-1">
+              -- Lux
+            </p>
           </div>
+          <i class="fa-solid fa-sun text-yellow-400/30 text-3xl"></i>
         </div>
-
-        <!-- Card Pin -->
         <div
-          class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-purple-500"
         >
-          <span class="text-xs text-slate-400 uppercase tracking-wider"
-            >Dung Lượng Pin</span
+          <div>
+            <p class="text-xs text-slate-400 font-medium">Pin Trạm Master</p>
+            <p
+              id="card-battery"
+              class="text-2xl font-bold text-purple-300 mt-1"
+            >
+              -- %
+            </p>
+          </div>
+          <i
+            class="fa-solid fa-battery-three-quarters text-purple-500/30 text-3xl"
+          ></i>
+        </div>
+      </div>
+
+      <!-- BẢNG ĐIỀU KHIỂN BƠM TƯỚI TỪ XA (PUMP CONTROL) -->
+      <div class="glass p-5 rounded-xl space-y-4">
+        <h2
+          class="text-lg font-bold text-slate-200 flex items-center space-x-2"
+        >
+          <i class="fa-solid fa-faucet-drip text-blue-400"></i>
+          <span>Điều Khiển Máy Bơm Tưới Tự Động / Thủ Công</span>
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Node 1 -->
+          <div
+            class="bg-slate-800/60 p-4 rounded-lg border border-slate-700 flex justify-between items-center"
           >
-          <div class="text-3xl font-bold text-emerald-400 mt-2">
-            <span id="battery">--</span> %
+            <div>
+              <p class="font-bold text-emerald-300">Gốc Sầu Riêng - Node 1</p>
+              <p id="status-node_1" class="text-xs text-slate-400 mt-0.5">
+                Trạng thái: 🔴 Đang TẮT
+              </p>
+            </div>
+            <button
+              id="btn-node_1"
+              onclick="togglePump('node_1')"
+              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition"
+            >
+              BẬT BƠM
+            </button>
+          </div>
+          <!-- Node 2 -->
+          <div
+            class="bg-slate-800/60 p-4 rounded-lg border border-slate-700 flex justify-between items-center"
+          >
+            <div>
+              <p class="font-bold text-emerald-300">Gốc Sầu Riêng - Node 2</p>
+              <p id="status-node_2" class="text-xs text-slate-400 mt-0.5">
+                Trạng thái: 🔴 Đang TẮT
+              </p>
+            </div>
+            <button
+              id="btn-node_2"
+              onclick="togglePump('node_2')"
+              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition"
+            >
+              BẬT BƠM
+            </button>
+          </div>
+          <!-- Node 3 -->
+          <div
+            class="bg-slate-800/60 p-4 rounded-lg border border-slate-700 flex justify-between items-center"
+          >
+            <div>
+              <p class="font-bold text-emerald-300">Gốc Sầu Riêng - Node 3</p>
+              <p id="status-node_3" class="text-xs text-slate-400 mt-0.5">
+                Trạng thái: 🔴 Đang TẮT
+              </p>
+            </div>
+            <button
+              id="btn-node_3"
+              onclick="togglePump('node_3')"
+              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition"
+            >
+              BẬT BƠM
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Khung Biểu đồ Lịch sử -->
-      <div
-        class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg"
-      >
-        <h2 class="text-lg font-semibold text-slate-200 mb-4">
-          Biểu Đồ Lịch Sử Dữ Liệu Cảm Biến
+      <!-- BIỂU ĐỒ XU HƯỚNG CẢM BIẾN -->
+      <div class="glass p-5 rounded-xl space-y-3">
+        <h2
+          class="text-lg font-bold text-slate-200 flex items-center space-x-2"
+        >
+          <i class="fa-solid fa-chart-line text-emerald-400"></i>
+          <span>Biểu Đồ Xu Hướng Dữ Liệu Thời Gian Thực</span>
         </h2>
-        <div class="relative h-80 w-full">
+        <div class="h-72 w-full">
           <canvas id="sensorChart"></canvas>
         </div>
       </div>
     </main>
 
-    <!-- Script điều khiển -->
-    <script src="app.js"></script>
+    <!-- FLOATING CHATBOT AI WIDGET -->
+    <div class="fixed bottom-6 right-6 z-50">
+      <!-- Nút Tròn Mở Chat -->
+      <button
+        onclick="toggleChatbox()"
+        class="w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 hover:scale-105 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition transform"
+      >
+        <i class="fa-solid fa-robot"></i>
+      </button>
+
+      <!-- Khung Chat Window -->
+      <div
+        id="chatbox-window"
+        class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden h-96"
+      >
+        <!-- Chat Header -->
+        <div
+          class="bg-slate-900/90 p-3 px-4 flex justify-between items-center border-b border-slate-700"
+        >
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-microchip text-emerald-400"></i>
+            <span class="font-bold text-sm text-emerald-300"
+              >Trợ Lý AI Chẩn Đoán Sầu Riêng</span
+            >
+          </div>
+          <button
+            onclick="toggleChatbox()"
+            class="text-slate-400 hover:text-white text-sm"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <!-- Chat Messages Area -->
+        <div
+          id="chat-messages"
+          class="flex-1 p-3 overflow-y-auto space-y-3 text-xs"
+        >
+          <div
+            class="bg-slate-700/60 text-slate-200 p-2.5 rounded-xl max-w-[85%]"
+          >
+            Xin chào! Tôi là Trợ lý AI Chăm sóc Sầu Riêng. Bạn cần tư vấn thông
+            số cảm biến hay lịch tưới cây hôm nay không?
+          </div>
+        </div>
+        <!-- Chat Input -->
+        <div
+          class="p-2 border-t border-slate-700 bg-slate-900/50 flex items-center space-x-2"
+        >
+          <input
+            id="chat-input"
+            type="text"
+            placeholder="Hỏi AI về tình trạng cây..."
+            onkeydown="if (event.key === 'Enter') sendChatMessage();"
+            class="flex-1 bg-slate-800 text-slate-100 text-xs px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500"
+          />
+          <button
+            onclick="sendChatMessage()"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-xs transition"
+          >
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL ĐĂNG NHẬP -->
+    <div
+      id="login-modal"
+      class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl"
+      >
+        <h3 class="text-lg font-bold text-emerald-400 text-center">
+          Đăng Nhập Hệ Thống
+        </h3>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-400">Tên tài khoản</label>
+            <input
+              id="login-username"
+              type="text"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Mật khẩu</label>
+            <input
+              id="login-password"
+              type="password"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button
+            onclick="closeLoginModal()"
+            class="px-4 py-1.5 text-xs text-slate-400 hover:text-white"
+          >
+            Hủy
+          </button>
+          <button
+            onclick="submitLogin()"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold"
+          >
+            Đăng Nhập
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+      const API_BASE = "https://durian-iot-backend.onrender.com/api/v1";
+      let pumpStates = { node_1: false, node_2: false, node_3: false };
+
+      // 1. Lấy dữ liệu cảm biến & Cập nhật UI
+      async function fetchSensorData() {
+        try {
+          const res = await fetch(`${API_BASE}/sensors/latest?limit=10`);
+          const data = await res.json();
+          if (data.length > 0) {
+            const latest = data[0];
+            document.getElementById("card-temp").innerText =
+              `${latest.temperature} °C`;
+            document.getElementById("card-humidity").innerText =
+              `${latest.humidity} %`;
+            document.getElementById("card-soil").innerText =
+              `${latest.soil_moisture} %`;
+            document.getElementById("card-light").innerText =
+              `${latest.light_lux} Lux`;
+            document.getElementById("card-battery").innerText =
+              `${latest.battery} %`;
+            updateChart(data);
+          }
+        } catch (err) {
+          console.error("Lỗi lấy dữ liệu cảm biến:", err);
+        }
+      }
+
+      // 2. Lấy Thời tiết
+      async function fetchWeather() {
+        try {
+          const res = await fetch(`${API_BASE}/weather?city=Tien Giang`);
+          const data = await res.json();
+          document.getElementById("weather-desc").innerText =
+            data.description || "Nắng nhẹ";
+          document.getElementById("weather-temp").innerText = `${data.temp}°C`;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      // 3. Điều khiển Máy bơm
+      async function togglePump(nodeId) {
+        const nextAction = pumpStates[nodeId] ? "OFF" : "ON";
+        try {
+          const res = await fetch(`${API_BASE}/control/pump`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ node_id: nodeId, action: nextAction }),
+          });
+          if (res.ok) {
+            pumpStates[nodeId] = !pumpStates[nodeId];
+            const btn = document.getElementById(`btn-${nodeId}`);
+            const status = document.getElementById(`status-${nodeId}`);
+            if (pumpStates[nodeId]) {
+              btn.innerText = "TẮT BƠM";
+              btn.className =
+                "bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition";
+              status.innerText = "Trạng thái: 🟢 Đang BẬT";
+            } else {
+              btn.innerText = "BẬT BƠM";
+              btn.className =
+                "bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition";
+              status.innerText = "Trạng thái: 🔴 Đang TẮT";
+            }
+          }
+        } catch (err) {
+          alert("Lỗi gửi lệnh bơm!");
+        }
+      }
+
+      // 4. Xuất Báo cáo Excel
+      function exportExcel() {
+        window.open(`${API_BASE}/export/excel`, "_blank");
+      }
+
+      // 5. Chatbot AI Gemini
+      function toggleChatbox() {
+        document.getElementById("chatbox-window").classList.toggle("hidden");
+      }
+
+      async function sendChatMessage() {
+        const input = document.getElementById("chat-input");
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        const chatContainer = document.getElementById("chat-messages");
+        chatContainer.innerHTML += `<div class="bg-emerald-600/80 text-white p-2.5 rounded-xl ml-auto max-w-[85%]">${msg}</div>`;
+        input.value = "";
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // Loading state
+        const loadingId = "loading-" + Date.now();
+        chatContainer.innerHTML += `<div id="${loadingId}" class="bg-slate-700/60 text-slate-400 p-2.5 rounded-xl max-w-[85%]">AI đang phân tích dữ liệu...</div>`;
+
+        try {
+          const res = await fetch(`${API_BASE}/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg }),
+          });
+          const data = await res.json();
+          document.getElementById(loadingId).remove();
+          chatContainer.innerHTML += `<div class="bg-slate-700/60 text-slate-200 p-2.5 rounded-xl max-w-[85%]">${data.reply}</div>`;
+        } catch (err) {
+          document.getElementById(loadingId).innerText = "Lỗi kết nối AI!";
+        }
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      // 6. Modal Login
+      function openLoginModal() {
+        document.getElementById("login-modal").classList.remove("hidden");
+      }
+      function closeLoginModal() {
+        document.getElementById("login-modal").classList.add("hidden");
+      }
+      async function submitLogin() {
+        const u = document.getElementById("login-username").value;
+        const p = document.getElementById("login-password").value;
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, password: p }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            localStorage.setItem("token", data.access_token);
+            document.getElementById("user-label").innerText =
+              data.full_name || data.username;
+            closeLoginModal();
+          } else {
+            alert(data.detail);
+          }
+        } catch (e) {
+          alert("Lỗi đăng nhập");
+        }
+      }
+
+      // 7. Khởi tạo Biểu đồ Chart.js
+      let chart;
+      function initChart() {
+        const ctx = document.getElementById("sensorChart").getContext("2d");
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Nhiệt độ (°C)",
+                data: [],
+                borderColor: "#f59e0b",
+                tension: 0.3,
+              },
+              {
+                label: "Độ ẩm đất (%)",
+                data: [],
+                borderColor: "#10b981",
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: "#94a3b8" } } },
+            scales: {
+              x: {
+                ticks: { color: "#64748b" },
+                grid: { color: "rgba(255,255,255,0.05)" },
+              },
+              y: {
+                ticks: { color: "#64748b" },
+                grid: { color: "rgba(255,255,255,0.05)" },
+              },
+            },
+          },
+        });
+      }
+
+      function updateChart(logs) {
+        const reversed = [...logs].reverse();
+        chart.data.labels = reversed.map((l) =>
+          new Date(l.created_at).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        );
+        chart.data.datasets[0].data = reversed.map((l) => l.temperature);
+        chart.data.datasets[1].data = reversed.map((l) => l.soil_moisture);
+        chart.update();
+      }
+
+      // Khởi chạy khi load trang
+      window.onload = () => {
+        initChart();
+        fetchSensorData();
+        fetchWeather();
+        setInterval(fetchSensorData, 5000); // Tự động F5 dữ liệu mỗi 5s
+      };
+    </script>
   </body>
 </html>
