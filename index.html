@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hệ Thống Giám Sát Vườn Sầu Riêng IoT & AI</title>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
@@ -13,11 +14,32 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <!-- Leaflet OpenStreetMap CDN -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
       .glass {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(30, 41, 59, 0.75);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      #map {
+        height: 260px;
+        width: 100%;
+        border-radius: 0.75rem;
+        z-index: 1;
+      }
+      .leaflet-popup-content-wrapper {
+        background: #1e293b;
+        color: #f8fafc;
+        border: 1px solid #334155;
+      }
+      .leaflet-popup-tip {
+        background: #1e293b;
       }
     </style>
   </head>
@@ -26,191 +48,313 @@
   >
     <!-- HEADER -->
     <header
-      class="glass sticky top-0 z-40 px-6 py-4 flex justify-between items-center shadow-lg"
+      class="glass sticky top-0 z-40 px-6 py-3.5 flex flex-wrap justify-between items-center shadow-lg gap-3"
     >
+      <!-- Logo & Title -->
       <div class="flex items-center space-x-3">
-        <i class="fa-solid fa-tree text-emerald-400 text-2xl"></i>
-        <h1
-          class="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-200 bg-clip-text text-transparent"
+        <!-- LOGO SẦU RIÊNG SVG -->
+        <div
+          class="w-10 h-10 rounded-full bg-amber-500/10 p-1.5 flex items-center justify-center border border-amber-500/30 shadow-inner"
         >
-          Giám Sát Vườn Sầu Riêng IoT & AI
-        </h1>
+          <svg
+            viewBox="0 0 64 64"
+            class="w-full h-full fill-current text-amber-400"
+          >
+            <path
+              d="M32 6 C30 6, 28 8, 28 10 L28 14 C18 16, 10 24, 10 36 C10 48, 19 58, 32 58 C45 58, 54 48, 54 36 C54 24, 46 16, 36 14 L36 10 C36 8, 34 6, 32 6 Z M32 20 C40 20, 48 26, 48 36 C48 44, 41 52, 32 52 C23 52, 16 44, 16 36 C16 26, 24 20, 32 20 Z"
+              fill="#eab308"
+            />
+            <path
+              d="M32 24 L28 30 L34 32 L30 38 L36 40 L30 46 L32 48"
+              stroke="#16a34a"
+              stroke-width="2.5"
+              fill="none"
+              stroke-linecap="round"
+            />
+            <polygon points="32,8 26,16 38,16" fill="#15803d" />
+            <circle cx="22" cy="28" r="2" fill="#ca8a04" />
+            <circle cx="42" cy="28" r="2" fill="#ca8a04" />
+            <circle cx="18" cy="36" r="2" fill="#ca8a04" />
+            <circle cx="46" cy="36" r="2" fill="#ca8a04" />
+            <circle cx="22" cy="44" r="2" fill="#ca8a04" />
+            <circle cx="42" cy="44" r="2" fill="#ca8a04" />
+          </svg>
+        </div>
+        <div>
+          <h1
+            class="text-lg font-bold bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent leading-tight"
+          >
+            Giám Sát Vườn Sầu Riêng IoT & AI
+          </h1>
+          <p class="text-[11px] text-slate-400">
+            Quản lý trạm thông minh theo thời gian thực
+          </p>
+        </div>
       </div>
-      <div class="flex items-center space-x-4">
+
+      <div class="flex items-center space-x-3 text-xs">
+        <!-- ĐỒNG HỒ THỜI GIAN THỰC -->
+        <div
+          class="hidden lg:flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg text-emerald-300 border border-slate-700/80 font-mono"
+        >
+          <i class="fa-regular fa-clock text-emerald-400 text-sm"></i>
+          <span id="realtime-clock" class="font-semibold"
+            >--:--:-- --/--/----</span
+          >
+        </div>
+
         <!-- Widget Thời tiết -->
         <div
           id="weather-card"
-          class="hidden sm:flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-lg text-sm border border-slate-700"
+          class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700/80"
         >
-          <i class="fa-solid fa-cloud-sun text-amber-400"></i>
-          <span id="weather-desc">Đang tải thời tiết...</span>
+          <i class="fa-solid fa-cloud-sun text-amber-400 text-sm"></i>
+          <span id="weather-desc" class="text-slate-300 font-medium"
+            >Đang tải...</span
+          >
           <span id="weather-temp" class="font-bold text-amber-300">--°C</span>
         </div>
 
         <!-- Nút Xuất Excel -->
         <button
           onclick="exportExcel()"
-          class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition"
+          class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition shadow"
         >
-          <i class="fa-solid fa-file-excel"></i>
-          <span>Xuất Báo Cáo</span>
+          <i class="fa-solid fa-file-excel text-sm"></i>
+          <span class="hidden sm:inline">Xuất Báo Cáo</span>
         </button>
 
-        <!-- Nút Đăng nhập / User -->
+        <!-- Nút Đăng nhập -->
         <button
           id="login-btn"
           onclick="openLoginModal()"
-          class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-2 transition"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition shadow"
         >
-          <i class="fa-solid fa-user"></i>
-          <span id="user-label">Đăng Nhập</span>
+          <i class="fa-solid fa-user text-sm"></i>
+          <span id="user-label" class="hidden sm:inline">Đăng Nhập</span>
         </button>
       </div>
     </header>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
-      <!-- THẺ THỐNG KÊ CẢM BIẾN MỚI NHẤT -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
+      <!-- QUẢN LÝ KHU VỰC MASTER NODE & BẢN ĐỒ DỊNH VỊ -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- CỘT 1 & 2: BẢN ĐỒ TƯƠNG TÁC LEAFLET & CHỌN MASTER NODE -->
         <div
-          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-amber-500"
+          class="lg:col-span-2 glass p-5 rounded-2xl space-y-4 border border-slate-700/60"
+        >
+          <div class="flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-2">
+              <i
+                class="fa-solid fa-map-location-dot text-amber-400 text-base"
+              ></i>
+              <h2 class="font-bold text-slate-200">
+                Định Vị Nông Trại & Chọn Trạm Master
+              </h2>
+            </div>
+            <!-- SELECTOR MASTER NODE -->
+            <div class="flex items-center space-x-2">
+              <label class="text-xs text-slate-400 hidden sm:inline"
+                >Trạm Master:</label
+              >
+              <select
+                id="master-select"
+                onchange="switchMasterNode(this.value)"
+                class="bg-slate-800 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-500/40 focus:outline-none focus:border-emerald-400 cursor-pointer"
+              >
+                <option value="master_1">Master 01 - Khu Vực Tiền Giang</option>
+                <option value="master_2">Master 02 - Khu Vực Bến Tre</option>
+                <option value="master_3">Master 03 - Khu Vực Lâm Đồng</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- BẢN ĐỒ OPENSTREETMAP -->
+          <div id="map"></div>
+          <p class="text-[11px] text-slate-400 italic">
+            💡 Click vào các ghim (Marker) trên bản đồ để chuyển trạm Master
+            tương ứng.
+          </p>
+        </div>
+
+        <!-- CỘT 3: THỜI TIẾT CHI TIẾT & DỰ BÁO VÙNG -->
+        <div
+          class="glass p-5 rounded-2xl space-y-4 flex flex-col justify-between border border-slate-700/60"
         >
           <div>
-            <p class="text-xs text-slate-400 font-medium">Nhiệt Độ Không Khí</p>
-            <p id="card-temp" class="text-2xl font-bold text-amber-400 mt-1">
+            <div class="flex items-center space-x-2 mb-3">
+              <i
+                class="fa-solid fa-temperature-sun text-amber-400 text-base"
+              ></i>
+              <h2 class="font-bold text-slate-200">Thời Tiết Vùng Nông Trại</h2>
+            </div>
+
+            <div
+              class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-3"
+            >
+              <div
+                class="flex justify-between items-center border-b border-slate-700/60 pb-2"
+              >
+                <span class="text-xs text-slate-400">Vị trí trạm:</span>
+                <span
+                  id="farm-location"
+                  class="text-xs font-bold text-emerald-300"
+                  >Tiền Giang</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-center border-b border-slate-700/60 pb-2"
+              >
+                <span class="text-xs text-slate-400">Nhiệt độ ngoài trời:</span>
+                <span id="farm-temp" class="text-sm font-bold text-amber-300"
+                  >31.5 °C</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-center border-b border-slate-700/60 pb-2"
+              >
+                <span class="text-xs text-slate-400">Độ ẩm không khí:</span>
+                <span id="farm-humidity" class="text-sm font-bold text-blue-400"
+                  >75 %</span
+                >
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">Trạng thái:</span>
+                <span
+                  id="farm-weather-desc"
+                  class="text-xs font-medium text-slate-200"
+                  >Nắng nhẹ, mây rải rác</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- DỰ BÁO THỜI TIẾT NÔNG NGHIỆP -->
+          <div class="space-y-2">
+            <h3
+              class="text-xs font-bold text-slate-300 flex items-center space-x-1"
+            >
+              <i class="fa-solid fa-calendar-day text-emerald-400"></i>
+              <span>Dự Báo Tưới Nước Nông Nghiệp</span>
+            </h3>
+            <div
+              id="forecast-card"
+              class="bg-emerald-950/40 p-3 rounded-xl border border-emerald-600/30 text-xs text-emerald-200 leading-relaxed"
+            >
+              ☀️ Khung giờ lý tưởng tưới cây hôm nay:
+              <b>06:00 - 08:00 AM</b> hoặc <b>17:00 - 18:30 PM</b>. Đất hút nước
+              tốt, tránh cháy lá.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- THẺ THỐNG KÊ CẢM BIẾN MỚI NHẤT DÀNH CHO MASTER NODE HIỆN TẠI -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-amber-500 shadow"
+        >
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium">Nhiệt Độ Khí</p>
+            <p id="card-temp" class="text-xl font-bold text-amber-400 mt-1">
               -- °C
             </p>
           </div>
           <i
-            class="fa-solid fa-temperature-high text-amber-500/30 text-3xl"
+            class="fa-solid fa-temperature-high text-amber-500/30 text-2xl"
           ></i>
         </div>
         <div
-          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-blue-500"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-blue-500 shadow"
         >
           <div>
-            <p class="text-xs text-slate-400 font-medium">Độ Ẩm Không Khí</p>
-            <p id="card-humidity" class="text-2xl font-bold text-blue-400 mt-1">
+            <p class="text-[11px] text-slate-400 font-medium">Độ Ẩm Khí</p>
+            <p id="card-humidity" class="text-xl font-bold text-blue-400 mt-1">
               -- %
             </p>
           </div>
-          <i class="fa-solid fa-droplet text-blue-500/30 text-3xl"></i>
+          <i class="fa-solid fa-droplet text-blue-500/30 text-2xl"></i>
         </div>
         <div
-          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-emerald-500"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-emerald-500 shadow"
         >
           <div>
-            <p class="text-xs text-slate-400 font-medium">
+            <p class="text-[11px] text-slate-400 font-medium">
               Độ Ẩm Đất (Trung Bình)
             </p>
-            <p id="card-soil" class="text-2xl font-bold text-emerald-400 mt-1">
+            <p id="card-soil" class="text-xl font-bold text-emerald-400 mt-1">
               -- %
             </p>
           </div>
-          <i class="fa-solid fa-plant-wilt text-emerald-500/30 text-3xl"></i>
+          <i class="fa-solid fa-plant-wilt text-emerald-500/30 text-2xl"></i>
         </div>
         <div
-          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-yellow-400"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-yellow-400 shadow"
         >
           <div>
-            <p class="text-xs text-slate-400 font-medium">Cường Độ Ánh Sáng</p>
-            <p id="card-light" class="text-2xl font-bold text-yellow-300 mt-1">
+            <p class="text-[11px] text-slate-400 font-medium">
+              Cường Độ Ánh Sáng
+            </p>
+            <p id="card-light" class="text-xl font-bold text-yellow-300 mt-1">
               -- Lux
             </p>
           </div>
-          <i class="fa-solid fa-sun text-yellow-400/30 text-3xl"></i>
+          <i class="fa-solid fa-sun text-yellow-400/30 text-2xl"></i>
         </div>
         <div
-          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-purple-500"
+          class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-purple-500 shadow"
         >
           <div>
-            <p class="text-xs text-slate-400 font-medium">Pin Trạm Master</p>
-            <p
-              id="card-battery"
-              class="text-2xl font-bold text-purple-300 mt-1"
-            >
+            <p class="text-[11px] text-slate-400 font-medium">
+              Pin Trạm Master
+            </p>
+            <p id="card-battery" class="text-xl font-bold text-purple-300 mt-1">
               -- %
             </p>
           </div>
           <i
-            class="fa-solid fa-battery-three-quarters text-purple-500/30 text-3xl"
+            class="fa-solid fa-battery-three-quarters text-purple-500/30 text-2xl"
           ></i>
         </div>
       </div>
 
-      <!-- BẢNG ĐIỀU KHIỂN BƠM TƯỚI TỪ XA (PUMP CONTROL) -->
-      <div class="glass p-5 rounded-xl space-y-4">
-        <h2
-          class="text-lg font-bold text-slate-200 flex items-center space-x-2"
+      <!-- BẢNG ĐIỀU KHIỂN NÔI VÀ BẬT/TẮT MÁY BƠM DÀNH CHO CÁC NODE CON -->
+      <div class="glass p-5 rounded-2xl space-y-4 border border-slate-700/60">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+          <h2
+            class="text-base font-bold text-slate-200 flex items-center space-x-2"
+          >
+            <i class="fa-solid fa-faucet-drip text-blue-400"></i>
+            <span
+              >Điều Khiển Bơm Tưới Các Node Con (<span
+                id="current-master-label"
+                class="text-emerald-400"
+                >Master 01 - Tiền Giang</span
+              >)</span
+            >
+          </h2>
+          <span class="text-xs text-slate-400"
+            >Cập nhật tự động 5 giây/lần</span
+          >
+        </div>
+
+        <!-- CONTAINER DYNANMIC CHO CÁC NODE CON -->
+        <div
+          id="child-nodes-container"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          <i class="fa-solid fa-faucet-drip text-blue-400"></i>
-          <span>Điều Khiển Máy Bơm Tưới Tự Động / Thủ Công</span>
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Node 1 -->
-          <div
-            class="bg-slate-800/60 p-4 rounded-lg border border-slate-700 flex justify-between items-center"
-          >
-            <div>
-              <p class="font-bold text-emerald-300">Gốc Sầu Riêng - Node 1</p>
-              <p id="status-node_1" class="text-xs text-slate-400 mt-0.5">
-                Trạng thái: 🔴 Đang TẮT
-              </p>
-            </div>
-            <button
-              id="btn-node_1"
-              onclick="togglePump('node_1')"
-              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition"
-            >
-              BẬT BƠM
-            </button>
-          </div>
-          <!-- Node 2 -->
-          <div
-            class="bg-slate-800/60 p-4 rounded-lg border border-slate-700 flex justify-between items-center"
-          >
-            <div>
-              <p class="font-bold text-emerald-300">Gốc Sầu Riêng - Node 2</p>
-              <p id="status-node_2" class="text-xs text-slate-400 mt-0.5">
-                Trạng thái: 🔴 Đang TẮT
-              </p>
-            </div>
-            <button
-              id="btn-node_2"
-              onclick="togglePump('node_2')"
-              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition"
-            >
-              BẬT BƠM
-            </button>
-          </div>
-          <!-- Node 3 -->
-          <div
-            class="bg-slate-800/60 p-4 rounded-lg border border-slate-700 flex justify-between items-center"
-          >
-            <div>
-              <p class="font-bold text-emerald-300">Gốc Sầu Riêng - Node 3</p>
-              <p id="status-node_3" class="text-xs text-slate-400 mt-0.5">
-                Trạng thái: 🔴 Đang TẮT
-              </p>
-            </div>
-            <button
-              id="btn-node_3"
-              onclick="togglePump('node_3')"
-              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition"
-            >
-              BẬT BƠM
-            </button>
-          </div>
+          <!-- Nội dung Node con sẽ được tự động vẽ lại bằng JS khi đổi Master Node -->
         </div>
       </div>
 
       <!-- BIỂU ĐỒ XU HƯỚNG CẢM BIẾN -->
-      <div class="glass p-5 rounded-xl space-y-3">
+      <div class="glass p-5 rounded-2xl space-y-3 border border-slate-700/60">
         <h2
-          class="text-lg font-bold text-slate-200 flex items-center space-x-2"
+          class="text-base font-bold text-slate-200 flex items-center space-x-2"
         >
           <i class="fa-solid fa-chart-line text-emerald-400"></i>
-          <span>Biểu Đồ Xu Hướng Dữ Liệu Thời Gian Thực</span>
+          <span>Biểu Đồ Xu Hướng Dữ Liệu Cảm Biến Thời Gian Thực</span>
         </h2>
         <div class="h-72 w-full">
           <canvas id="sensorChart"></canvas>
@@ -220,7 +364,6 @@
 
     <!-- FLOATING CHATBOT AI WIDGET -->
     <div class="fixed bottom-6 right-6 z-50">
-      <!-- Nút Tròn Mở Chat -->
       <button
         onclick="toggleChatbox()"
         class="w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 hover:scale-105 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition transform"
@@ -228,18 +371,16 @@
         <i class="fa-solid fa-robot"></i>
       </button>
 
-      <!-- Khung Chat Window -->
       <div
         id="chatbox-window"
         class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden h-96"
       >
-        <!-- Chat Header -->
         <div
           class="bg-slate-900/90 p-3 px-4 flex justify-between items-center border-b border-slate-700"
         >
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-microchip text-emerald-400"></i>
-            <span class="font-bold text-sm text-emerald-300"
+            <span class="font-bold text-xs text-emerald-300"
               >Trợ Lý AI Chẩn Đoán Sầu Riêng</span
             >
           </div>
@@ -250,7 +391,6 @@
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-        <!-- Chat Messages Area -->
         <div
           id="chat-messages"
           class="flex-1 p-3 overflow-y-auto space-y-3 text-xs"
@@ -258,18 +398,17 @@
           <div
             class="bg-slate-700/60 text-slate-200 p-2.5 rounded-xl max-w-[85%]"
           >
-            Xin chào! Tôi là Trợ lý AI Chăm sóc Sầu Riêng. Bạn cần tư vấn thông
-            số cảm biến hay lịch tưới cây hôm nay không?
+            Xin chào! Tôi là Trợ lý AI Chăm sóc Sầu Riêng. Bạn cần tư vấn tình
+            trạng đất hay lịch tưới trạm nào?
           </div>
         </div>
-        <!-- Chat Input -->
         <div
           class="p-2 border-t border-slate-700 bg-slate-900/50 flex items-center space-x-2"
         >
           <input
             id="chat-input"
             type="text"
-            placeholder="Hỏi AI về tình trạng cây..."
+            placeholder="Hỏi AI về sức khỏe cây..."
             onkeydown="if (event.key === 'Enter') sendChatMessage();"
             class="flex-1 bg-slate-800 text-slate-100 text-xs px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500"
           />
@@ -292,7 +431,7 @@
         class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl"
       >
         <h3 class="text-lg font-bold text-emerald-400 text-center">
-          Đăng Nhập Hệ Thống
+          Đăng Nhập Quản Trị
         </h3>
         <div class="space-y-3">
           <div>
@@ -329,28 +468,140 @@
       </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- JAVASCRIPT SYSTEM LOGIC -->
     <script>
       const API_BASE = "https://durian-iot-backend.onrender.com/api/v1";
-      let pumpStates = { node_1: false, node_2: false, node_3: false };
 
-      // 1. Lấy dữ liệu cảm biến & Cập nhật UI
+      // DỮ LIỆU CÁC MASTER NODE VÀ CÁC NODE CON
+      const MASTER_NODES_DATA = {
+        master_1: {
+          name: "Master 01 - Tiền Giang",
+          location: "Tiền Giang",
+          lat: 10.3563,
+          lng: 106.3631,
+          childNodes: ["node_1", "node_2", "node_3"],
+        },
+        master_2: {
+          name: "Master 02 - Bến Tre",
+          location: "Ben Tre",
+          lat: 10.2431,
+          lng: 106.3751,
+          childNodes: ["node_4", "node_5", "node_6"],
+        },
+        master_3: {
+          name: "Master 03 - Lâm Đồng",
+          location: "Da Lat",
+          lat: 11.9404,
+          lng: 108.4583,
+          childNodes: ["node_7", "node_8", "node_9"],
+        },
+      };
+
+      let currentMasterKey = "master_1";
+      let pumpStates = {};
+      let map,
+        markers = {};
+
+      // 1. ĐỒNG HỒ THỜI GIAN THỰC
+      function updateRealtimeClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString("vi-VN", { hour12: false });
+        const dateStr = now.toLocaleDateString("vi-VN");
+        const clockEl = document.getElementById("realtime-clock");
+        if (clockEl) clockEl.innerText = `${timeStr} - ${dateStr}`;
+      }
+
+      // 2. KHỞI TẠO BẢN ĐỒ LEAFLET
+      function initLeafletMap() {
+        map = L.map("map").setView([10.3563, 106.3631], 8);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 18,
+          attribution: "© OpenStreetMap",
+        }).addTo(map);
+
+        // Vẽ Marker cho từng Master Node
+        Object.keys(MASTER_NODES_DATA).forEach((key) => {
+          const item = MASTER_NODES_DATA[key];
+          const marker = L.marker([item.lat, item.lng]).addTo(map);
+          marker.bindPopup(`<b>${item.name}</b><br>Khu vực: ${item.location}`);
+
+          marker.on("click", () => {
+            document.getElementById("master-select").value = key;
+            switchMasterNode(key);
+          });
+
+          markers[key] = marker;
+        });
+      }
+
+      // 3. CHUYỂN ĐỔI MASTER NODE
+      function switchMasterNode(masterKey) {
+        currentMasterKey = masterKey;
+        const data = MASTER_NODES_DATA[masterKey];
+
+        // Cập nhật giao diện
+        document.getElementById("current-master-label").innerText = data.name;
+        document.getElementById("farm-location").innerText = data.location;
+
+        // Di chuyển tâm bản đồ tới vị trí nông trại
+        if (map) {
+          map.flyTo([data.lat, data.lng], 10);
+          if (markers[masterKey]) markers[masterKey].openPopup();
+        }
+
+        // Render danh sách các Node con
+        renderChildNodesUI(data.childNodes);
+
+        // Lấy lại thời tiết & cảm biến theo Master Node mới
+        fetchWeather(data.location);
+        fetchSensorData();
+      }
+
+      // 4. VẼ GIAO DIỆN CÁC NODE CON
+      function renderChildNodesUI(childNodesList) {
+        const container = document.getElementById("child-nodes-container");
+        container.innerHTML = "";
+
+        childNodesList.forEach((nodeId, idx) => {
+          if (pumpStates[nodeId] === undefined) pumpStates[nodeId] = false;
+          const isON = pumpStates[nodeId];
+
+          const cardHTML = `
+                    <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner">
+                        <div>
+                            <p class="font-bold text-emerald-300 text-sm">Gốc Sầu Riêng - Node ${idx + 1}</p>
+                            <p class="text-[10px] text-slate-400 font-mono mt-0.5">Mã thiết bị: ${nodeId}</p>
+                            <p id="status-${nodeId}" class="text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1">
+                                Trạng thái: ${isON ? "🟢 Đang BẬT" : "🔴 Đang TẮT"}
+                            </p>
+                        </div>
+                        <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow">
+                            ${isON ? "TẮT BƠM" : "BẬT BƠM"}
+                        </button>
+                    </div>
+                `;
+          container.innerHTML += cardHTML;
+        });
+      }
+
+      // 5. LẤY DỮ LIỆU CẢM BIẾN DÀNH CHO DASHBOARD
       async function fetchSensorData() {
         try {
           const res = await fetch(`${API_BASE}/sensors/latest?limit=10`);
           const data = await res.json();
-          if (data.length > 0) {
+          if (data && data.length > 0) {
             const latest = data[0];
             document.getElementById("card-temp").innerText =
-              `${latest.temperature} °C`;
+              `${latest.temperature ?? "--"} °C`;
             document.getElementById("card-humidity").innerText =
-              `${latest.humidity} %`;
+              `${latest.humidity ?? "--"} %`;
             document.getElementById("card-soil").innerText =
-              `${latest.soil_moisture} %`;
+              `${latest.soil_moisture ?? "--"} %`;
             document.getElementById("card-light").innerText =
-              `${latest.light_lux} Lux`;
+              `${latest.light_lux ?? "--"} Lux`;
             document.getElementById("card-battery").innerText =
-              `${latest.battery} %`;
+              `${latest.battery ?? "--"} %`;
             updateChart(data);
           }
         } catch (err) {
@@ -358,20 +609,36 @@
         }
       }
 
-      // 2. Lấy Thời tiết
-      async function fetchWeather() {
+      // 6. LẤY DỮ LIỆU THỜI TIẾT TỪ BACKEND
+      async function fetchWeather(cityName = "Tien Giang") {
         try {
-          const res = await fetch(`${API_BASE}/weather?city=Tien Giang`);
+          const res = await fetch(
+            `${API_BASE}/weather?city=${encodeURIComponent(cityName)}`,
+          );
           const data = await res.json();
-          document.getElementById("weather-desc").innerText =
-            data.description || "Nắng nhẹ";
-          document.getElementById("weather-temp").innerText = `${data.temp}°C`;
+
+          const tempVal =
+            data.temp !== undefined && data.temp !== null
+              ? `${data.temp}°C`
+              : "31.5°C";
+          const descVal = data.description || "Nắng nhẹ, mây rải rác";
+
+          // Cập nhật Header
+          document.getElementById("weather-temp").innerText = tempVal;
+          document.getElementById("weather-desc").innerText = descVal;
+
+          // Cập nhật Card thời tiết nông trại
+          document.getElementById("farm-temp").innerText = tempVal;
+          document.getElementById("farm-humidity").innerText = data.humidity
+            ? `${data.humidity} %`
+            : "75 %";
+          document.getElementById("farm-weather-desc").innerText = descVal;
         } catch (err) {
-          console.error(err);
+          console.error("Lỗi thời tiết:", err);
         }
       }
 
-      // 3. Điều khiển Máy bơm
+      // 7. ĐIỀU KHIỂN BẬT/TẮT MÁY BƠM
       async function togglePump(nodeId) {
         const nextAction = pumpStates[nodeId] ? "OFF" : "ON";
         try {
@@ -382,31 +649,32 @@
           });
           if (res.ok) {
             pumpStates[nodeId] = !pumpStates[nodeId];
+            const isON = pumpStates[nodeId];
             const btn = document.getElementById(`btn-${nodeId}`);
             const status = document.getElementById(`status-${nodeId}`);
-            if (pumpStates[nodeId]) {
-              btn.innerText = "TẮT BƠM";
-              btn.className =
-                "bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition";
-              status.innerText = "Trạng thái: 🟢 Đang BẬT";
-            } else {
-              btn.innerText = "BẬT BƠM";
-              btn.className =
-                "bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-md font-semibold transition";
-              status.innerText = "Trạng thái: 🔴 Đang TẮT";
+
+            if (btn) {
+              btn.innerText = isON ? "TẮT BƠM" : "BẬT BƠM";
+              btn.className = `${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow`;
+            }
+            if (status) {
+              status.innerText = isON
+                ? "Trạng thái: 🟢 Đang BẬT"
+                : "Trạng thái: 🔴 Đang TẮT";
+              status.className = `text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1`;
             }
           }
         } catch (err) {
-          alert("Lỗi gửi lệnh bơm!");
+          alert("Lỗi kết nối lệnh bơm!");
         }
       }
 
-      // 4. Xuất Báo cáo Excel
+      // 8. XUẤT FILE EXCEL
       function exportExcel() {
         window.open(`${API_BASE}/export/excel`, "_blank");
       }
 
-      // 5. Chatbot AI Gemini
+      // 9. CHATBOT AI GEMINI
       function toggleChatbox() {
         document.getElementById("chatbox-window").classList.toggle("hidden");
       }
@@ -421,9 +689,8 @@
         input.value = "";
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
-        // Loading state
         const loadingId = "loading-" + Date.now();
-        chatContainer.innerHTML += `<div id="${loadingId}" class="bg-slate-700/60 text-slate-400 p-2.5 rounded-xl max-w-[85%]">AI đang phân tích dữ liệu...</div>`;
+        chatContainer.innerHTML += `<div id="${loadingId}" class="bg-slate-700/60 text-slate-400 p-2.5 rounded-xl max-w-[85%]">AI đang suy nghĩ...</div>`;
 
         try {
           const res = await fetch(`${API_BASE}/chat`, {
@@ -435,12 +702,12 @@
           document.getElementById(loadingId).remove();
           chatContainer.innerHTML += `<div class="bg-slate-700/60 text-slate-200 p-2.5 rounded-xl max-w-[85%]">${data.reply}</div>`;
         } catch (err) {
-          document.getElementById(loadingId).innerText = "Lỗi kết nối AI!";
+          document.getElementById(loadingId).innerText = "Lỗi kết nối tới AI!";
         }
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
-      // 6. Modal Login
+      // 10. MODAL LOGIN
       function openLoginModal() {
         document.getElementById("login-modal").classList.remove("hidden");
       }
@@ -470,7 +737,7 @@
         }
       }
 
-      // 7. Khởi tạo Biểu đồ Chart.js
+      // 11. KHỞI TẠO BIỂU ĐỒ CHART.JS
       let chart;
       function initChart() {
         const ctx = document.getElementById("sensorChart").getContext("2d");
@@ -483,20 +750,26 @@
                 label: "Nhiệt độ (°C)",
                 data: [],
                 borderColor: "#f59e0b",
+                backgroundColor: "rgba(245,158,11,0.1)",
                 tension: 0.3,
+                fill: true,
               },
               {
                 label: "Độ ẩm đất (%)",
                 data: [],
                 borderColor: "#10b981",
+                backgroundColor: "rgba(16,185,129,0.1)",
                 tension: 0.3,
+                fill: true,
               },
             ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: "#94a3b8" } } },
+            plugins: {
+              legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+            },
             scales: {
               x: {
                 ticks: { color: "#64748b" },
@@ -524,12 +797,18 @@
         chart.update();
       }
 
-      // Khởi chạy khi load trang
+      // HÀM CHẠY KHI TẢI TRANG
       window.onload = () => {
         initChart();
-        fetchSensorData();
-        fetchWeather();
-        setInterval(fetchSensorData, 5000); // Tự động F5 dữ liệu mỗi 5s
+        initLeafletMap();
+        switchMasterNode("master_1");
+
+        // Cập nhật đồng hồ mỗi giây
+        setInterval(updateRealtimeClock, 1000);
+        updateRealtimeClock();
+
+        // Tự động làm mới dữ liệu cảm biến mỗi 5s
+        setInterval(fetchSensorData, 5000);
       };
     </script>
   </body>
