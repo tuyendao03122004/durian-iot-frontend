@@ -208,7 +208,9 @@ async function fetchWeather(cityName = "Tien Giang") {
   }
 }
 
-// 5. DỰ BÁO THỜI TIẾT 7 NGÀY (MOCK DATA CHI TIẾT)
+// ==========================================
+// 5. DỰ BÁO THỜI TIẾT 7 NGÀY & CHI TIẾT THEO GIỜ
+// ==========================================
 function openWeatherForecastModal() {
   const modal = document.getElementById("weather-forecast-modal");
   const container = document.getElementById("forecast-7days-list");
@@ -218,7 +220,6 @@ function openWeatherForecastModal() {
     document.getElementById("farm-location")?.innerText || "Tiền Giang";
   safeSetInnerText("forecast-modal-city", city);
 
-  // Tạo danh sách 7 ngày tới
   const days = [
     "Chủ Nhật",
     "Thứ Hai",
@@ -283,18 +284,94 @@ function openWeatherForecastModal() {
     const dateStr = `${nextDate.getDate()}/${nextDate.getMonth() + 1}`;
     const w = weatherTypes[i % weatherTypes.length];
 
+    // Mẫu dữ liệu chi tiết theo các khung giờ trong ngày
+    const hourlyData = [
+      {
+        time: "06:00",
+        temp: "24°C",
+        hum: "85%",
+        icon: "fa-sun text-amber-300",
+        desc: "Nắng sớm",
+      },
+      {
+        time: "09:00",
+        temp: "28°C",
+        hum: "75%",
+        icon: "fa-cloud-sun text-amber-400",
+        desc: "Nắng nhẹ",
+      },
+      {
+        time: "12:00",
+        temp: "32°C",
+        hum: "65%",
+        icon: "fa-sun text-amber-400",
+        desc: "Nắng gắt",
+      },
+      {
+        time: "15:00",
+        temp: "30°C",
+        hum: "70%",
+        icon: "fa-cloud-sun-rain text-blue-400",
+        desc: "Mưa rào nhẹ",
+      },
+      {
+        time: "18:00",
+        temp: "27°C",
+        hum: "80%",
+        icon: "fa-cloud text-slate-300",
+        desc: "Mát mẻ",
+      },
+      {
+        time: "21:00",
+        temp: "25°C",
+        hum: "88%",
+        icon: "fa-moon text-indigo-300",
+        desc: "Đêm quang mây",
+      },
+    ];
+
+    let hourlyHTML = hourlyData
+      .map(
+        (h) => `
+            <div class="flex-1 min-w-[70px] bg-slate-900/90 p-2 rounded-lg text-center border border-slate-700/60 shadow-inner">
+                <p class="text-[10px] text-slate-400 font-mono font-bold">${h.time}</p>
+                <div class="my-1 text-sm"><i class="fa-solid ${h.icon}"></i></div>
+                <p class="text-xs font-bold text-amber-300">${h.temp}</p>
+                <p class="text-[9px] text-blue-400 mt-0.5">${h.hum}</p>
+            </div>
+        `,
+      )
+      .join("");
+
     container.innerHTML += `
-            <div class="bg-slate-800/90 p-3.5 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
-                <div class="flex items-center space-x-3">
-                    <div class="text-xl w-8 text-center"><i class="fa-solid ${w.icon}"></i></div>
-                    <div>
-                        <p class="font-bold text-slate-200 text-xs">${dayName} <span class="text-slate-400 font-normal">(${dateStr})</span></p>
-                        <p class="text-[11px] text-slate-400 mt-0.5">${w.desc}</p>
+            <div class="bg-slate-800/90 rounded-xl border border-slate-700/80 overflow-hidden shadow">
+                <!-- Tiêu đề ngày (Bấm vào để ẩn/hiện dự báo theo giờ) -->
+                <div onclick="toggleHourlyForecast(${i})" class="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition select-none">
+                    <div class="flex items-center space-x-3">
+                        <div class="text-xl w-8 text-center"><i class="fa-solid ${w.icon}"></i></div>
+                        <div>
+                            <p class="font-bold text-slate-200 text-xs">${dayName} <span class="text-slate-400 font-normal">(${dateStr})</span></p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">${w.desc}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 text-right">
+                        <div>
+                            <p class="font-bold text-amber-300 text-xs">${w.temp}</p>
+                            <p class="text-[10px] text-blue-400">Độ ẩm: ${w.hum}</p>
+                        </div>
+                        <i id="arrow-icon-${i}" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300"></i>
                     </div>
                 </div>
-                <div class="text-right">
-                    <p class="font-bold text-amber-300 text-xs">${w.temp}</p>
-                    <p class="text-[10px] text-blue-400">Độ ẩm: ${w.hum}</p>
+
+                <!-- Bảng chi tiết theo giờ (Xổ xuống khi click) -->
+                <div id="hourly-container-${i}" class="hidden bg-slate-950/60 p-3 border-t border-slate-700/60 transition-all">
+                    <p class="text-[10px] font-bold text-emerald-400 mb-2 flex items-center space-x-1">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>Chi tiết thời tiết theo giờ (${dayName} - ${dateStr}):</span>
+                    </p>
+                    <div class="flex space-x-2 overflow-x-auto pb-1">
+                        ${hourlyHTML}
+                    </div>
                 </div>
             </div>
         `;
@@ -303,11 +380,31 @@ function openWeatherForecastModal() {
   modal.classList.remove("hidden");
 }
 
+// HÀM BẬT/TẮT XỔ XUỐNG XEM THEO GIỜ
+function toggleHourlyForecast(index) {
+  const container = document.getElementById(`hourly-container-${index}`);
+  const arrow = document.getElementById(`arrow-icon-${index}`);
+  if (container) {
+    const isHidden = container.classList.contains("hidden");
+    if (isHidden) {
+      container.classList.remove("hidden");
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+    } else {
+      container.classList.add("hidden");
+      if (arrow) arrow.style.transform = "rotate(0deg)";
+    }
+  }
+}
+
 function closeWeatherForecastModal() {
   const modal = document.getElementById("weather-forecast-modal");
   if (modal) modal.classList.add("hidden");
 }
 
+// ĐẢM BẢO CÁC HÀM ĐƯỢC GẮN VÀO WINDOW
+window.openWeatherForecastModal = openWeatherForecastModal;
+window.closeWeatherForecastModal = closeWeatherForecastModal;
+window.toggleHourlyForecast = toggleHourlyForecast;
 // 6. XUẤT EXCEL & CHATBOT AI
 function exportExcel() {
   window.open(`${API_BASE}/export/excel`, "_blank");
