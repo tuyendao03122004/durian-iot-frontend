@@ -533,21 +533,22 @@
       </div>
     </div>
 
-    <!-- MODAL 2: DỰ BÁO THỜI TIẾT 7 NGÀY -->
+    <!--2. MODAL DỰ BÁO THỜI TIẾT 7 NGÀY (ĐÃ SCALE TO TOÀN MÀN HÌNH) -->
     <div
       id="weather-forecast-modal"
-      class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div
-        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl"
+        class="bg-slate-800 border border-slate-700 rounded-3xl p-6 w-full max-w-3xl md:max-w-4xl space-y-4 shadow-2xl max-h-[90vh] flex flex-col"
       >
+        <!-- HEADER MODAL -->
         <div
-          class="flex justify-between items-center border-b border-slate-700 pb-3"
+          class="flex justify-between items-center border-b border-slate-700/80 pb-3.5 flex-shrink-0"
         >
           <h3
-            class="text-base font-bold text-amber-400 flex items-center space-x-2"
+            class="text-lg font-bold text-amber-400 flex items-center space-x-2"
           >
-            <i class="fa-solid fa-cloud-sun"></i>
+            <i class="fa-solid fa-cloud-sun text-xl"></i>
             <span
               >Dự Báo Thời Tiết 7 Ngày -
               <span id="forecast-modal-city" class="text-emerald-300"
@@ -557,26 +558,29 @@
           </h3>
           <button
             onclick="closeWeatherForecastModal()"
-            class="text-slate-400 hover:text-white"
+            class="text-slate-400 hover:text-white text-lg transition"
           >
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
+
+        <!-- DANH SÁCH DỰ BÁO 7 NGÀY -->
         <div
           id="forecast-7days-list"
-          class="space-y-2.5 max-h-96 overflow-y-auto pr-1"
+          class="space-y-3 overflow-y-auto pr-1.5 flex-1"
         ></div>
-        <div class="text-right pt-2">
+
+        <!-- FOOTER MODAL -->
+        <div class="text-right pt-2 border-t border-slate-700/80 flex-shrink-0">
           <button
             onclick="closeWeatherForecastModal()"
-            class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-xs"
+            class="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2 rounded-xl text-xs font-semibold transition"
           >
             Đóng
           </button>
         </div>
       </div>
     </div>
-
     <!-- CUSTOM JS -->
     <script src="js/map.js"></script>
     <script src="js/app.js"></script>
