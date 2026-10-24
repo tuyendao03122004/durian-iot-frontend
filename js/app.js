@@ -208,25 +208,21 @@ async function fetchWeather(cityName = "Tien Giang") {
   }
 }
 
-// 5. DỰ BÁO THỜI TIẾT 7 NGÀY & CHI TIẾT THEO GIỜ
-// Map mã Icon từ OpenWeatherMap sang FontAwesome
+// 5. DỰ BÁO THỜI TIẾT THỰC TẾ CHI TIẾT THEO NGÀY & GIỜ
 function getWeatherIconClass(iconCode) {
   if (!iconCode) return "fa-cloud-sun text-amber-400";
-  if (iconCode.startsWith("01")) return "fa-sun text-amber-400"; // Trời quang / nắng
-  if (iconCode.startsWith("02")) return "fa-cloud-sun text-yellow-300"; // Ít mây
+  if (iconCode.startsWith("01")) return "fa-sun text-amber-400";
+  if (iconCode.startsWith("02")) return "fa-cloud-sun text-yellow-300";
   if (iconCode.startsWith("03") || iconCode.startsWith("04"))
-    return "fa-cloud text-slate-300"; // Nhiều mây
+    return "fa-cloud text-slate-300";
   if (iconCode.startsWith("09") || iconCode.startsWith("10"))
-    return "fa-cloud-sun-rain text-blue-400"; // Mưa
+    return "fa-cloud-sun-rain text-blue-400";
   if (iconCode.startsWith("11"))
-    return "fa-cloud-showers-heavy text-indigo-400"; // Dông
-  if (iconCode.startsWith("13")) return "fa-snowflake text-cyan-300"; // Tuyết
+    return "fa-cloud-showers-heavy text-indigo-400";
+  if (iconCode.startsWith("13")) return "fa-snowflake text-cyan-300";
   return "fa-cloud-sun text-amber-400";
 }
 
-// ==========================================
-// DỰ BÁO THỜI TIẾT THỰC TẾ CHI TIẾT THEO NGÀY & GIỜ
-// ==========================================
 async function openWeatherForecastModal() {
   const modal = document.getElementById("weather-forecast-modal");
   const container = document.getElementById("forecast-7days-list");
@@ -236,13 +232,12 @@ async function openWeatherForecastModal() {
     document.getElementById("farm-location")?.innerText || "Tien Giang";
   safeSetInnerText("forecast-modal-city", city);
 
-  // Hiển thị trạng thái đang tải
   container.innerHTML = `
-        <div class="text-center py-8 text-slate-400 font-medium animate-pulse text-xs">
-            <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-emerald-400"></i>
-            <p>Đang kết nối vệ tinh thời tiết khu vực ${city}...</p>
-        </div>
-    `;
+      <div class="text-center py-8 text-slate-400 font-medium animate-pulse text-xs">
+          <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-emerald-400"></i>
+          <p>Đang kết nối vệ tinh thời tiết khu vực ${city}...</p>
+      </div>
+  `;
   modal.classList.remove("hidden");
 
   try {
@@ -252,7 +247,7 @@ async function openWeatherForecastModal() {
     const data = await res.json();
 
     if (!data.forecast || data.forecast.length === 0) {
-      container.innerHTML = `<div class="text-center py-6 text-amber-400 text-xs">Chưa cài đặt OPENWEATHER_API_KEY hoặc không tìm thấy dữ liệu vùng.</div>`;
+      container.innerHTML = `<div class="text-center py-6 text-amber-400 text-xs">${data.message || "Chưa tìm thấy dữ liệu thời tiết."}</div>`;
       return;
     }
 
@@ -273,56 +268,80 @@ async function openWeatherForecastModal() {
       const dateFormatted = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
       const iconClass = getWeatherIconClass(dayData.icon_code);
 
-      // Render các khung giờ thực tế từ API
       let hourlyHTML = dayData.hourly
         .map((h) => {
           const hIconClass = getWeatherIconClass(h.icon);
           return `
-                    <div class="bg-slate-900/90 p-2.5 rounded-xl text-center border border-slate-700/60 shadow-inner">
-                        <p class="text-[11px] text-slate-400 font-mono font-bold">${h.time}</p>
-                        <div class="my-1 text-base"><i class="fa-solid ${hIconClass}"></i></div>
-                        <p class="text-xs font-bold text-amber-300">${h.temp}</p>
-                        <p class="text-[10px] text-blue-400 mt-0.5">${h.humidity}</p>
-                    </div>
-                `;
+              <div class="bg-slate-900/90 p-2.5 rounded-xl text-center border border-slate-700/60 shadow-inner">
+                  <p class="text-[11px] text-slate-400 font-mono font-bold">${h.time}</p>
+                  <div class="my-1 text-base"><i class="fa-solid ${hIconClass}"></i></div>
+                  <p class="text-xs font-bold text-amber-300">${h.temp}</p>
+                  <p class="text-[10px] text-blue-400 mt-0.5">${h.humidity}</p>
+              </div>
+          `;
         })
         .join("");
 
       container.innerHTML += `
-                <div class="bg-slate-800/90 rounded-xl border border-slate-700/80 overflow-hidden shadow">
-                    <!-- TIÊU ĐỀ NGÀY -->
-                    <div onclick="toggleHourlyForecast(${i})" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition select-none">
-                        <div class="flex items-center space-x-3">
-                            <div class="text-2xl w-8 text-center"><i class="fa-solid ${iconClass}"></i></div>
-                            <div>
-                                <p class="font-bold text-slate-200 text-sm">${dayName} <span class="text-slate-400 font-normal">(${dateFormatted})</span></p>
-                                <p class="text-xs text-slate-400 mt-0.5">${dayData.description}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-4 text-right">
-                            <div>
-                                <p class="font-bold text-amber-300 text-sm">${dayData.temp_range}</p>
-                                <p class="text-xs text-blue-400">Độ ẩm TB: ${dayData.avg_humidity}</p>
-                            </div>
-                            <i id="arrow-icon-${i}" class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform duration-300"></i>
-                        </div>
-                    </div>
-
-                    <!-- CHI TIẾT THEO GIỜ THỰC TẾ -->
-                    <div id="hourly-container-${i}" class="hidden bg-slate-950/70 p-4 border-t border-slate-700/60">
-                        <p class="text-xs font-bold text-emerald-400 mb-2.5 flex items-center space-x-1.5">
-                            <i class="fa-regular fa-clock"></i>
-                            <span>Dự báo các khung giờ trong ngày (${dayName} - ${dateFormatted}):</span>
-                        </p>
-                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-                            ${hourlyHTML}
-                        </div>
+        <div class="bg-slate-800/90 rounded-xl border border-slate-700/80 overflow-hidden shadow">
+            <!-- TIÊU ĐỀ NGÀY -->
+            <div onclick="toggleHourlyForecast(${i})" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition select-none">
+                <div class="flex items-center space-x-3">
+                    <div class="text-2xl w-8 text-center"><i class="fa-solid ${iconClass}"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-200 text-sm">${dayName} <span class="text-slate-400 font-normal">(${dateFormatted})</span></p>
+                        <p class="text-xs text-slate-400 mt-0.5">${dayData.description}</p>
                     </div>
                 </div>
-            `;
+                <div class="flex items-center space-x-4 text-right">
+                    <div>
+                        <p class="font-bold text-amber-300 text-sm">${dayData.temp_range}</p>
+                        <p class="text-xs text-blue-400">Độ ẩm TB: ${dayData.avg_humidity}</p>
+                    </div>
+                    <i id="arrow-icon-${i}" class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform duration-300"></i>
+                </div>
+            </div>
+
+            <!-- CHI TIẾT THEO GIỜ -->
+            <div id="hourly-container-${i}" class="hidden bg-slate-950/70 p-4 border-t border-slate-700/60">
+                <p class="text-xs font-bold text-emerald-400 mb-2.5 flex items-center space-x-1.5">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Dự báo các khung giờ trong ngày (${dayName} - ${dateFormatted}):</span>
+                </p>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                    ${hourlyHTML}
+                </div>
+            </div>
+        </div>
+      `;
     });
   } catch (err) {
-    container.innerHTML = `<div class="text-center py-6 text-red-400 text-xs">Lỗi kết nối vệ tinh thời tiết!</div>`;
+    container.innerHTML = `<div class="text-center py-6 text-red-400 text-xs">Lỗi kết nối máy chủ thời tiết!</div>`;
+  }
+}
+
+// BỔ SUNG: HÀM ẨN/HIỆN THỜI TIẾT THEO GIỜ
+function toggleHourlyForecast(index) {
+  const container = document.getElementById(`hourly-container-${index}`);
+  const arrow = document.getElementById(`arrow-icon-${index}`);
+
+  if (container) {
+    const isHidden = container.classList.contains("hidden");
+    if (isHidden) {
+      container.classList.remove("hidden");
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+    } else {
+      container.classList.add("hidden");
+      if (arrow) arrow.style.transform = "rotate(0deg)";
+    }
+  }
+}
+
+// BỔ SUNG: HÀM ĐÓNG MODAL DỰ BÁO THỜI TIẾT
+function closeWeatherForecastModal() {
+  const modal = document.getElementById("weather-forecast-modal");
+  if (modal) {
+    modal.classList.add("hidden");
   }
 }
 
