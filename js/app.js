@@ -118,19 +118,19 @@ function renderChildNodesUI(childNodesList) {
     const isON = pumpStates[nodeId];
 
     const cardHTML = `
-            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner">
-                <div>
-                    <p class="font-bold text-emerald-300 text-sm">Gốc Sầu Riêng - Node ${idx + 1}</p>
-                    <p class="text-[10px] text-slate-400 font-mono mt-0.5">Mã thiết bị: ${nodeId}</p>
-                    <p id="status-${nodeId}" class="text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1">
-                        Trạng thái: ${isON ? "🟢 Đang BẬT" : "🔴 Đang TẮT"}
-                    </p>
-                </div>
-                <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow">
-                    ${isON ? "TẮT BƠM" : "BẬT BƠM"}
-                </button>
-            </div>
-        `;
+      <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner">
+          <div>
+              <p class="font-bold text-emerald-300 text-sm">Gốc Sầu Riêng - Node ${idx + 1}</p>
+              <p class="text-[10px] text-slate-400 font-mono mt-0.5">Mã thiết bị: ${nodeId}</p>
+              <p id="status-${nodeId}" class="text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1">
+                  Trạng thái: ${isON ? "🟢 Đang BẬT" : "🔴 Đang TẮT"}
+              </p>
+          </div>
+          <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow">
+              ${isON ? "TẮT BƠM" : "BẬT BƠM"}
+          </button>
+      </div>
+    `;
     container.innerHTML += cardHTML;
   });
 }
@@ -207,9 +207,8 @@ async function fetchWeather(cityName = "Tien Giang") {
     console.error("Lỗi thời tiết:", err);
   }
 }
-// ==========================================
-// 5.DỰ BÁO THỜI TIẾT 7 NGÀY & CHI TIẾT THEO GIỜ (SCALE RỘNG)
-// ==========================================
+
+// 5. DỰ BÁO THỜI TIẾT 7 NGÀY & CHI TIẾT THEO GIỜ
 function openWeatherForecastModal() {
   const modal = document.getElementById("weather-forecast-modal");
   const container = document.getElementById("forecast-7days-list");
@@ -342,41 +341,63 @@ function openWeatherForecastModal() {
       .join("");
 
     container.innerHTML += `
-            <div class="bg-slate-800/90 rounded-xl border border-slate-700/80 overflow-hidden shadow">
-                <!-- TIÊU ĐỀ NGÀY -->
-                <div onclick="toggleHourlyForecast(${i})" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition select-none">
-                    <div class="flex items-center space-x-3">
-                        <div class="text-2xl w-8 text-center"><i class="fa-solid ${w.icon}"></i></div>
-                        <div>
-                            <p class="font-bold text-slate-200 text-sm">${dayName} <span class="text-slate-400 font-normal">(${dateStr})</span></p>
-                            <p class="text-xs text-slate-400 mt-0.5">${w.desc}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4 text-right">
-                        <div>
-                            <p class="font-bold text-amber-300 text-sm">${w.temp}</p>
-                            <p class="text-xs text-blue-400">Độ ẩm: ${w.hum}</p>
-                        </div>
-                        <i id="arrow-icon-${i}" class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform duration-300"></i>
-                    </div>
-                </div>
+      <div class="bg-slate-800/90 rounded-xl border border-slate-700/80 overflow-hidden shadow">
+          <!-- TIÊU ĐỀ NGÀY -->
+          <div onclick="toggleHourlyForecast(${i})" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition select-none">
+              <div class="flex items-center space-x-3">
+                  <div class="text-2xl w-8 text-center"><i class="fa-solid ${w.icon}"></i></div>
+                  <div>
+                      <p class="font-bold text-slate-200 text-sm">${dayName} <span class="text-slate-400 font-normal">(${dateStr})</span></p>
+                      <p class="text-xs text-slate-400 mt-0.5">${w.desc}</p>
+                  </div>
+              </div>
+              <div class="flex items-center space-x-4 text-right">
+                  <div>
+                      <p class="font-bold text-amber-300 text-sm">${w.temp}</p>
+                      <p class="text-xs text-blue-400">Độ ẩm: ${w.hum}</p>
+                  </div>
+                  <i id="arrow-icon-${i}" class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform duration-300"></i>
+              </div>
+          </div>
 
-                <!-- CHI TIẾT THEO GIỜ (HIỂN THỊ DẠNG GRID 6 CỘT TỰ ĐỘNG THẲNG HÀNG) -->
-                <div id="hourly-container-${i}" class="hidden bg-slate-950/70 p-4 border-t border-slate-700/60">
-                    <p class="text-xs font-bold text-emerald-400 mb-2.5 flex items-center space-x-1.5">
-                        <i class="fa-regular fa-clock"></i>
-                        <span>Chi tiết thời tiết theo giờ (${dayName} - ${dateStr}):</span>
-                    </p>
-                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-                        ${hourlyHTML}
-                    </div>
-                </div>
-            </div>
-        `;
+          <!-- CHI TIẾT THEO GIỜ -->
+          <div id="hourly-container-${i}" class="hidden bg-slate-950/70 p-4 border-t border-slate-700/60">
+              <p class="text-xs font-bold text-emerald-400 mb-2.5 flex items-center space-x-1.5">
+                  <i class="fa-regular fa-clock"></i>
+                  <span>Chi tiết thời tiết theo giờ (${dayName} - ${dateStr}):</span>
+              </p>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                  ${hourlyHTML}
+              </div>
+          </div>
+      </div>
+    `;
   }
 
   modal.classList.remove("hidden");
 }
+
+function toggleHourlyForecast(index) {
+  const container = document.getElementById(`hourly-container-${index}`);
+  const arrow = document.getElementById(`arrow-icon-${index}`);
+
+  if (container) {
+    const isHidden = container.classList.contains("hidden");
+    if (isHidden) {
+      container.classList.remove("hidden");
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+    } else {
+      container.classList.add("hidden");
+      if (arrow) arrow.style.transform = "rotate(0deg)";
+    }
+  }
+}
+
+function closeWeatherForecastModal() {
+  const modal = document.getElementById("weather-forecast-modal");
+  if (modal) modal.classList.add("hidden");
+}
+
 // 6. XUẤT EXCEL & CHATBOT AI
 function exportExcel() {
   window.open(`${API_BASE}/export/excel`, "_blank");
@@ -480,6 +501,7 @@ function updateChart(logs) {
   chart.update();
 }
 
+// GẮN CÁC HÀM XỬ LÝ VÀO PHẠM VI TOÀN CỤC (WINDOW)
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 window.togglePump = togglePump;
@@ -488,5 +510,6 @@ window.toggleChatbox = toggleChatbox;
 window.sendChatMessage = sendChatMessage;
 window.openWeatherForecastModal = openWeatherForecastModal;
 window.closeWeatherForecastModal = closeWeatherForecastModal;
+window.toggleHourlyForecast = toggleHourlyForecast;
 
 window.onload = checkAuthSession;
