@@ -3,12 +3,9 @@ let pumpStates = {};
 let chart = null;
 let isSystemInitialized = false;
 
-// Hàm hỗ trợ gán text an toàn (tránh lỗi Cannot set properties of null)
 function safeSetInnerText(elementId, textValue) {
   const el = document.getElementById(elementId);
-  if (el) {
-    el.innerText = textValue;
-  }
+  if (el) el.innerText = textValue;
 }
 
 // 1. AUTH & QUẢN LÝ PHIÊN ĐĂNG NHẬP
@@ -42,7 +39,6 @@ async function handleLogin() {
   const submitBtn = document.getElementById("login-submit-btn");
 
   if (!uInputEl || !pInputEl) return;
-
   const uInput = uInputEl.value.trim();
   const pInput = pInputEl.value.trim();
 
@@ -92,7 +88,7 @@ function handleLogout() {
   checkAuthSession();
 }
 
-// 2. KHỞI TẠO DASHBOARD
+// 2. KHỞI TẠO DASHBOARD SYSTEM
 function initDashboardSystem() {
   initChart();
   if (typeof initLeafletMap === "function") initLeafletMap();
@@ -111,7 +107,7 @@ function updateRealtimeClock() {
   safeSetInnerText("realtime-clock", `${timeStr} - ${dateStr}`);
 }
 
-// 3. ĐIỀU KHIỂN CÁC NODE CON VÀ MÁY BƠM
+// 3. XỬ LÝ ĐIỀU KHIỂN BƠM CỦA CÁC NODE CON
 function renderChildNodesUI(childNodesList) {
   const container = document.getElementById("child-nodes-container");
   if (!container) return;
@@ -171,7 +167,7 @@ async function togglePump(nodeId) {
 // 4. LẤY DỮ LIỆU CẢM BIẾN & THỜI TIẾT
 async function fetchSensorData() {
   try {
-    const res = await fetch(`${API_BASE}/sensors/latest?limit=10`);
+    const res = await fetch(`${API_BASE}/sensors/latest?limit=15`);
     const data = await res.json();
     if (data && data.length > 0) {
       const latest = data[0];
@@ -212,12 +208,111 @@ async function fetchWeather(cityName = "Tien Giang") {
   }
 }
 
-// 5. XUẤT BÁO CÁO EXCEL
+// 5. DỰ BÁO THỜI TIẾT 7 NGÀY (MOCK DATA CHI TIẾT)
+function openWeatherForecastModal() {
+  const modal = document.getElementById("weather-forecast-modal");
+  const container = document.getElementById("forecast-7days-list");
+  if (!modal || !container) return;
+
+  const city =
+    document.getElementById("farm-location")?.innerText || "Tiền Giang";
+  safeSetInnerText("forecast-modal-city", city);
+
+  // Tạo danh sách 7 ngày tới
+  const days = [
+    "Chủ Nhật",
+    "Thứ Hai",
+    "Thứ Ba",
+    "Thứ Tư",
+    "Thứ Năm",
+    "Thứ Sáu",
+    "Thứ Bảy",
+  ];
+  const weatherTypes = [
+    {
+      desc: "Nắng tốt, mây thưa",
+      icon: "fa-sun text-amber-400",
+      temp: "28°C - 33°C",
+      hum: "68%",
+    },
+    {
+      desc: "Mây rải rác, nắng nhẹ",
+      icon: "fa-cloud-sun text-yellow-300",
+      temp: "27°C - 32°C",
+      hum: "72%",
+    },
+    {
+      desc: "Mưa rào nhẹ buổi chiều",
+      icon: "fa-cloud-sun-rain text-blue-400",
+      temp: "25°C - 30°C",
+      hum: "82%",
+    },
+    {
+      desc: "Mưa dông dải rác",
+      icon: "fa-cloud-showers-heavy text-indigo-400",
+      temp: "24°C - 29°C",
+      hum: "88%",
+    },
+    {
+      desc: "Nhiều mây, hửng nắng",
+      icon: "fa-cloud text-slate-300",
+      temp: "26°C - 31°C",
+      hum: "75%",
+    },
+    {
+      desc: "Nắng rực rỡ",
+      icon: "fa-sun text-amber-400",
+      temp: "29°C - 34°C",
+      hum: "65%",
+    },
+    {
+      desc: "Nắng ấm, chiều mát",
+      icon: "fa-cloud-sun text-amber-300",
+      temp: "27°C - 33°C",
+      hum: "70%",
+    },
+  ];
+
+  container.innerHTML = "";
+  const today = new Date();
+
+  for (let i = 0; i < 7; i++) {
+    const nextDate = new Date();
+    nextDate.setDate(today.getDate() + i);
+    const dayName = i === 0 ? "Hôm nay" : days[nextDate.getDay()];
+    const dateStr = `${nextDate.getDate()}/${nextDate.getMonth() + 1}`;
+    const w = weatherTypes[i % weatherTypes.length];
+
+    container.innerHTML += `
+            <div class="bg-slate-800/90 p-3.5 rounded-xl border border-slate-700/80 flex items-center justify-between shadow">
+                <div class="flex items-center space-x-3">
+                    <div class="text-xl w-8 text-center"><i class="fa-solid ${w.icon}"></i></div>
+                    <div>
+                        <p class="font-bold text-slate-200 text-xs">${dayName} <span class="text-slate-400 font-normal">(${dateStr})</span></p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">${w.desc}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-amber-300 text-xs">${w.temp}</p>
+                    <p class="text-[10px] text-blue-400">Độ ẩm: ${w.hum}</p>
+                </div>
+            </div>
+        `;
+  }
+
+  modal.classList.remove("hidden");
+}
+
+function closeWeatherForecastModal() {
+  const modal = document.getElementById("weather-forecast-modal");
+  if (modal) modal.classList.add("hidden");
+}
+
+// 6. XUẤT EXCEL & CHATBOT AI
 function exportExcel() {
   window.open(`${API_BASE}/export/excel`, "_blank");
 }
 
-// 6. CHATBOT AI GEMINI
 function toggleChatbox() {
   const chatWindow = document.getElementById("chatbox-window");
   if (chatWindow) chatWindow.classList.toggle("hidden");
@@ -256,7 +351,7 @@ async function sendChatMessage() {
   }
 }
 
-// 7. CHART.JS
+// 7. CẤU HÌNH BIỂU ĐỒ CHART.JS
 function initChart() {
   const canvas = document.getElementById("sensorChart");
   if (!canvas) return;
@@ -316,13 +411,13 @@ function updateChart(logs) {
   chart.update();
 }
 
-// GẮN CÁC HÀM XỬ LÝ VÀO PHẠM VI TOÀN CỤC (WINDOW)
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 window.togglePump = togglePump;
 window.exportExcel = exportExcel;
 window.toggleChatbox = toggleChatbox;
 window.sendChatMessage = sendChatMessage;
+window.openWeatherForecastModal = openWeatherForecastModal;
+window.closeWeatherForecastModal = closeWeatherForecastModal;
 
-// TỰ ĐỘNG KHỞI CHẠY KHỔI ĐẦU
 window.onload = checkAuthSession;

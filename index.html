@@ -21,7 +21,7 @@
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Custom CSS File -->
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -33,13 +33,6 @@
       <div
         class="glass p-8 rounded-3xl w-full max-w-md space-y-6 border border-slate-700/80 shadow-2xl relative overflow-hidden"
       >
-        <div
-          class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"
-        ></div>
-        <div
-          class="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"
-        ></div>
-
         <div class="flex flex-col items-center text-center space-y-3">
           <div
             class="w-16 h-16 rounded-2xl bg-amber-500/10 p-2.5 flex items-center justify-center border border-amber-500/30 shadow-inner"
@@ -60,8 +53,6 @@
                 stroke-linecap="round"
               />
               <polygon points="32,8 26,16 38,16" fill="#15803d" />
-              <circle cx="22" cy="28" r="2" fill="#ca8a04" />
-              <circle cx="42" cy="28" r="2" fill="#ca8a04" />
             </svg>
           </div>
           <div>
@@ -87,47 +78,34 @@
             <label class="text-xs font-semibold text-slate-300 block mb-1"
               >Tên tài khoản</label
             >
-            <div class="relative">
-              <i
-                class="fa-solid fa-user absolute left-3.5 top-3 text-slate-500 text-xs"
-              ></i>
-              <input
-                id="login-username"
-                type="text"
-                placeholder="Nhập username"
-                required
-                class="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-              />
-            </div>
+            <input
+              id="login-username"
+              type="text"
+              placeholder="Nhập username"
+              required
+              class="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+            />
           </div>
-
           <div>
             <label class="text-xs font-semibold text-slate-300 block mb-1"
               >Mật khẩu</label
             >
-            <div class="relative">
-              <i
-                class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-500 text-xs"
-              ></i>
-              <input
-                id="login-password"
-                type="password"
-                placeholder="Nhập mật khẩu"
-                required
-                class="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-              />
-            </div>
+            <input
+              id="login-password"
+              type="password"
+              placeholder="Nhập mật khẩu"
+              required
+              class="w-full bg-slate-800/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+            />
           </div>
-
           <div
             id="login-error-msg"
             class="hidden text-xs text-red-400 text-center font-medium bg-red-950/40 py-2 rounded-lg border border-red-800/40"
           ></div>
-
           <button
             id="login-submit-btn"
             type="submit"
-            class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-2.5 rounded-xl font-bold text-xs shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2"
+            class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center justify-center space-x-2"
           >
             <i class="fa-solid fa-right-to-bracket"></i>
             <span>ĐĂNG NHẬP HỆ THỐNG</span>
@@ -138,12 +116,13 @@
 
     <!-- 2. MÀN HÌNH DASHBOARD -->
     <div id="dashboard-screen" class="hidden min-h-screen flex flex-col">
+      <!-- HEADER -->
       <header
         class="glass sticky top-0 z-40 px-6 py-3.5 flex flex-wrap justify-between items-center shadow-lg gap-3"
       >
         <div class="flex items-center space-x-3">
           <div
-            class="w-10 h-10 rounded-full bg-amber-500/10 p-1.5 flex items-center justify-center border border-amber-500/30 shadow-inner"
+            class="w-10 h-10 rounded-full bg-amber-500/10 p-1.5 flex items-center justify-center border border-amber-500/30"
           >
             <svg
               viewBox="0 0 64 64"
@@ -158,14 +137,13 @@
                 stroke="#16a34a"
                 stroke-width="2.5"
                 fill="none"
-                stroke-linecap="round"
               />
               <polygon points="32,8 26,16 38,16" fill="#15803d" />
             </svg>
           </div>
           <div>
             <h1
-              class="text-lg font-bold bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent leading-tight"
+              class="text-lg font-bold bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 bg-clip-text text-transparent"
             >
               Giám Sát Vườn Sầu Riêng IoT & AI
             </h1>
@@ -177,19 +155,19 @@
 
         <div class="flex items-center space-x-3 text-xs">
           <div
-            class="hidden lg:flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg text-emerald-300 border border-slate-700/80 font-mono"
+            class="hidden lg:flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg text-emerald-300 border border-slate-700 font-mono"
           >
-            <i class="fa-regular fa-clock text-emerald-400 text-sm"></i>
-            <span id="realtime-clock" class="font-semibold"
-              >--:--:-- --/--/----</span
-            >
+            <i class="fa-regular fa-clock text-emerald-400"></i>
+            <span id="realtime-clock" class="font-semibold">--:--:--</span>
           </div>
 
           <div
             id="weather-card"
-            class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700/80"
+            onclick="openWeatherForecastModal()"
+            class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer hover:border-amber-400 transition"
+            title="Click xem dự báo 7 ngày"
           >
-            <i class="fa-solid fa-cloud-sun text-amber-400 text-sm"></i>
+            <i class="fa-solid fa-cloud-sun text-amber-400"></i>
             <span id="weather-desc" class="text-slate-300 font-medium"
               >Đang tải...</span
             >
@@ -198,14 +176,14 @@
 
           <button
             onclick="exportExcel()"
-            class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition shadow"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition"
           >
-            <i class="fa-solid fa-file-excel text-sm"></i>
+            <i class="fa-solid fa-file-excel"></i>
             <span class="hidden sm:inline">Xuất Báo Cáo</span>
           </button>
 
           <div
-            class="flex items-center space-x-2 bg-slate-800/90 pl-3 pr-1.5 py-1 rounded-lg border border-slate-700/80"
+            class="flex items-center space-x-2 bg-slate-800/90 pl-3 pr-1.5 py-1 rounded-lg border border-slate-700"
           >
             <i class="fa-solid fa-user-circle text-emerald-400 text-sm"></i>
             <span id="user-display-name" class="font-bold text-emerald-300"
@@ -213,66 +191,141 @@
             >
             <button
               onclick="handleLogout()"
-              title="Đăng xuất"
-              class="bg-red-600/80 hover:bg-red-500 text-white px-2 py-1 rounded-md transition text-xs flex items-center space-x-1"
+              class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded transition text-xs"
             >
-              <i class="fa-solid fa-right-from-bracket"></i>
-              <span class="hidden sm:inline">Thoát</span>
+              Thoát
             </button>
           </div>
         </div>
       </header>
 
+      <!-- MAIN DASHBOARD CONTENT -->
       <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
-        <!-- QUẢN LÝ MASTER NODE & BẢN ĐỒ -->
+        <!-- THẺ THỐNG KÊ CẢM BIẾN CHUẨN ẢNH 1 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div
+            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-amber-500 shadow"
+          >
+            <div>
+              <p class="text-[11px] text-slate-400 font-medium">Nhiệt Độ Khí</p>
+              <p id="card-temp" class="text-xl font-bold text-amber-400 mt-1">
+                27.5 °C
+              </p>
+            </div>
+            <i
+              class="fa-solid fa-temperature-high text-amber-500/40 text-2xl"
+            ></i>
+          </div>
+          <div
+            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-blue-500 shadow"
+          >
+            <div>
+              <p class="text-[11px] text-slate-400 font-medium">Độ Ẩm Khí</p>
+              <p
+                id="card-humidity"
+                class="text-xl font-bold text-blue-400 mt-1"
+              >
+                77 %
+              </p>
+            </div>
+            <i class="fa-solid fa-droplet text-blue-500/40 text-2xl"></i>
+          </div>
+          <div
+            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-emerald-500 shadow"
+          >
+            <div>
+              <p class="text-[11px] text-slate-400 font-medium">
+                Độ Ẩm Đất (TB)
+              </p>
+              <p id="card-soil" class="text-xl font-bold text-emerald-400 mt-1">
+                65 %
+              </p>
+            </div>
+            <i class="fa-solid fa-plant-wilt text-emerald-500/40 text-2xl"></i>
+          </div>
+          <div
+            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-yellow-400 shadow"
+          >
+            <div>
+              <p class="text-[11px] text-slate-400 font-medium">Ánh Sáng</p>
+              <p id="card-light" class="text-xl font-bold text-yellow-300 mt-1">
+                14500 Lux
+              </p>
+            </div>
+            <i class="fa-solid fa-sun text-yellow-400/40 text-2xl"></i>
+          </div>
+          <div
+            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-purple-500 shadow"
+          >
+            <div>
+              <p class="text-[11px] text-slate-400 font-medium">Pin Master</p>
+              <p
+                id="card-battery"
+                class="text-xl font-bold text-purple-300 mt-1"
+              >
+                94 %
+              </p>
+            </div>
+            <i
+              class="fa-solid fa-battery-three-quarters text-purple-500/40 text-2xl"
+            ></i>
+          </div>
+        </div>
+
+        <!-- ĐỊNH VỊ NÔNG TRẠI & THỜI TIẾT VÙNG CHUẨN ẢNH 2 -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- BẢN ĐỒ & NÚT THÊM TRẠM -->
           <div
             class="lg:col-span-2 glass p-5 rounded-2xl space-y-4 border border-slate-700/60"
           >
             <div class="flex flex-wrap justify-between items-center gap-2">
               <div class="flex items-center space-x-2">
-                <i
-                  class="fa-solid fa-map-location-dot text-amber-400 text-base"
-                ></i>
+                <i class="fa-solid fa-map-location-dot text-amber-400"></i>
                 <h2 class="font-bold text-slate-200">
                   Định Vị Nông Trại & Chọn Trạm Master
                 </h2>
               </div>
               <div class="flex items-center space-x-2">
-                <label class="text-xs text-slate-400 hidden sm:inline"
-                  >Trạm Master:</label
+                <!-- NÚT THÊM MASTER NODE MỚI -->
+                <button
+                  onclick="openAddMasterModal()"
+                  class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-2.5 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1"
                 >
+                  <i class="fa-solid fa-plus"></i>
+                  <span>Thêm Trạm Master</span>
+                </button>
                 <select
                   id="master-select"
                   onchange="switchMasterNode(this.value)"
-                  class="bg-slate-800 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-500/40 focus:outline-none focus:border-emerald-400 cursor-pointer"
-                >
-                  <option value="master_1">
-                    Master 01 - Khu Vực Tiền Giang
-                  </option>
-                  <option value="master_2">Master 02 - Khu Vực Bến Tre</option>
-                  <option value="master_3">Master 03 - Khu Vực Lâm Đồng</option>
-                </select>
+                  class="bg-slate-800 text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-500/40 focus:outline-none"
+                ></select>
               </div>
             </div>
             <div id="map"></div>
             <p class="text-[11px] text-slate-400 italic">
-              💡 Click vào ghim (Marker) trên bản đồ để chuyển trạm Master tương
-              ứng.
+              📍 Click vào ghim (Marker) trên bản đồ để xem dữ liệu cảm biến của
+              Trạm Master đó.
             </p>
           </div>
 
+          <!-- THỜI TIẾT VÙNG NÔNG TRẠI -->
           <div
             class="glass p-5 rounded-2xl space-y-4 flex flex-col justify-between border border-slate-700/60"
           >
             <div>
-              <div class="flex items-center space-x-2 mb-3">
-                <i
-                  class="fa-solid fa-temperature-sun text-amber-400 text-base"
-                ></i>
-                <h2 class="font-bold text-slate-200">
-                  Thời Tiết Vùng Nông Trại
+              <div class="flex justify-between items-center mb-3">
+                <h2
+                  class="font-bold text-slate-200 flex items-center space-x-2"
+                >
+                  <i class="fa-solid fa-temperature-sun text-amber-400"></i>
+                  <span>Thời Tiết Vùng Nông Trại</span>
                 </h2>
+                <button
+                  onclick="openWeatherForecastModal()"
+                  class="text-xs text-amber-400 hover:underline"
+                >
+                  Dự báo 7 ngày <i class="fa-solid fa-angle-right"></i>
+                </button>
               </div>
               <div
                 class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-3"
@@ -326,85 +379,12 @@
                 <span>Dự Báo Tưới Nước Nông Nghiệp</span>
               </h3>
               <div
-                id="forecast-card"
                 class="bg-emerald-950/40 p-3 rounded-xl border border-emerald-600/30 text-xs text-emerald-200 leading-relaxed"
               >
                 ☀️ Khung giờ lý tưởng tưới cây hôm nay:
-                <b>06:00 - 08:00 AM</b> hoặc <b>17:00 - 18:30 PM</b>. Đất hút
-                nước tốt, tránh cháy lá.
+                <b>06:00 - 08:00 AM</b> hoặc <b>17:00 - 18:30 PM</b>.
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- THẺ THỐNG KÊ CẢM BIẾN -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div
-            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-amber-500 shadow"
-          >
-            <div>
-              <p class="text-[11px] text-slate-400 font-medium">Nhiệt Độ Khí</p>
-              <p id="card-temp" class="text-xl font-bold text-amber-400 mt-1">
-                -- °C
-              </p>
-            </div>
-            <i
-              class="fa-solid fa-temperature-high text-amber-500/30 text-2xl"
-            ></i>
-          </div>
-          <div
-            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-blue-500 shadow"
-          >
-            <div>
-              <p class="text-[11px] text-slate-400 font-medium">Độ Ẩm Khí</p>
-              <p
-                id="card-humidity"
-                class="text-xl font-bold text-blue-400 mt-1"
-              >
-                -- %
-              </p>
-            </div>
-            <i class="fa-solid fa-droplet text-blue-500/30 text-2xl"></i>
-          </div>
-          <div
-            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-emerald-500 shadow"
-          >
-            <div>
-              <p class="text-[11px] text-slate-400 font-medium">
-                Độ Ẩm Đất (TB)
-              </p>
-              <p id="card-soil" class="text-xl font-bold text-emerald-400 mt-1">
-                -- %
-              </p>
-            </div>
-            <i class="fa-solid fa-plant-wilt text-emerald-500/30 text-2xl"></i>
-          </div>
-          <div
-            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-yellow-400 shadow"
-          >
-            <div>
-              <p class="text-[11px] text-slate-400 font-medium">Ánh Sáng</p>
-              <p id="card-light" class="text-xl font-bold text-yellow-300 mt-1">
-                -- Lux
-              </p>
-            </div>
-            <i class="fa-solid fa-sun text-yellow-400/30 text-2xl"></i>
-          </div>
-          <div
-            class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-purple-500 shadow"
-          >
-            <div>
-              <p class="text-[11px] text-slate-400 font-medium">Pin Master</p>
-              <p
-                id="card-battery"
-                class="text-xl font-bold text-purple-300 mt-1"
-              >
-                -- %
-              </p>
-            </div>
-            <i
-              class="fa-solid fa-battery-three-quarters text-purple-500/30 text-2xl"
-            ></i>
           </div>
         </div>
 
@@ -419,11 +399,10 @@
                 >Điều Khiển Bơm Tưới Các Node Con (<span
                   id="current-master-label"
                   class="text-emerald-400"
-                  >Master 01 - Tiền Giang</span
+                  >Master 01</span
                 >)</span
               >
             </h2>
-            <span class="text-xs text-slate-400">Cập nhật tự động 5s/lần</span>
           </div>
           <div
             id="child-nodes-container"
@@ -431,81 +410,174 @@
           ></div>
         </div>
 
-        <!-- BIỂU ĐỒ -->
+        <!-- BIỂU ĐỒ CẢM BIẾN -->
         <div class="glass p-5 rounded-2xl space-y-3 border border-slate-700/60">
           <h2
             class="text-base font-bold text-slate-200 flex items-center space-x-2"
           >
             <i class="fa-solid fa-chart-line text-emerald-400"></i>
-            <span>Biểu Đồ Xu Hướng Dữ Liệu Cảm Biến Thời Gian Thực</span>
+            <span>Biểu Đồ Xu Hướng Cảm Biến Của Trạm Đang Chọn</span>
           </h2>
           <div class="h-72 w-full">
             <canvas id="sensorChart"></canvas>
           </div>
         </div>
       </main>
+    </div>
 
-      <!-- CHATBOT AI -->
-      <div class="fixed bottom-6 right-6 z-50">
-        <button
-          onclick="toggleChatbox()"
-          class="w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 hover:scale-105 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition transform"
-        >
-          <i class="fa-solid fa-robot"></i>
-        </button>
+    <!-- MODAL 1: THÊM TRẠM MASTER MỚI -->
+    <div
+      id="add-master-modal"
+      class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl"
+      >
         <div
-          id="chatbox-window"
-          class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden h-96"
+          class="flex justify-between items-center border-b border-slate-700 pb-3"
         >
-          <div
-            class="bg-slate-900/90 p-3 px-4 flex justify-between items-center border-b border-slate-700"
+          <h3
+            class="text-base font-bold text-emerald-400 flex items-center space-x-2"
           >
-            <div class="flex items-center space-x-2">
-              <i class="fa-solid fa-microchip text-emerald-400"></i>
-              <span class="font-bold text-xs text-emerald-300"
-                >Trợ Lý AI Chẩn Đoán Sầu Riêng</span
-              >
-            </div>
-            <button
-              onclick="toggleChatbox()"
-              class="text-slate-400 hover:text-white text-sm"
+            <i class="fa-solid fa-map-pin"></i>
+            <span>Thêm Địa Chỉ Trạm Master Mới</span>
+          </h3>
+          <button
+            onclick="closeAddMasterModal()"
+            class="text-slate-400 hover:text-white"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <form onsubmit="handleAddMasterNode(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="text-slate-300 font-medium block mb-1"
+              >Mã Trạm ID (VD: 4, 5, 04)</label
             >
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-          <div
-            id="chat-messages"
-            class="flex-1 p-3 overflow-y-auto space-y-3 text-xs"
-          >
-            <div
-              class="bg-slate-700/60 text-slate-200 p-2.5 rounded-xl max-w-[85%]"
-            >
-              Xin chào! Tôi là Trợ lý AI Chăm sóc Sầu Riêng. Bạn cần tư vấn tình
-              trạng đất hay lịch tưới trạm nào?
-            </div>
-          </div>
-          <div
-            class="p-2 border-t border-slate-700 bg-slate-900/50 flex items-center space-x-2"
-          >
             <input
-              id="chat-input"
+              id="new-master-id"
               type="text"
-              placeholder="Hỏi AI về sức khỏe cây..."
-              onkeydown="if (event.key === 'Enter') sendChatMessage();"
-              class="flex-1 bg-slate-800 text-slate-100 text-xs px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500"
+              placeholder="VD: 4"
+              required
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
             />
-            <button
-              onclick="sendChatMessage()"
-              class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-xs transition"
+          </div>
+          <div>
+            <label class="text-slate-300 font-medium block mb-1"
+              >Tên Trạm Master</label
             >
-              <i class="fa-solid fa-paper-plane"></i>
+            <input
+              id="new-master-name"
+              type="text"
+              placeholder="VD: Master 04"
+              required
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div>
+            <label class="text-slate-300 font-medium block mb-1"
+              >Tên Vùng / Tỉnh Thành</label
+            >
+            <input
+              id="new-master-city"
+              type="text"
+              placeholder="VD: Vĩnh Long"
+              required
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-slate-300 font-medium block mb-1"
+                >Vĩ độ (Latitude)</label
+              >
+              <input
+                id="new-master-lat"
+                type="number"
+                step="any"
+                placeholder="VD: 10.2537"
+                required
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label class="text-slate-300 font-medium block mb-1"
+                >Kinh độ (Longitude)</label
+              >
+              <input
+                id="new-master-lng"
+                type="number"
+                step="any"
+                placeholder="VD: 105.9722"
+                required
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+          <div class="flex justify-end space-x-2 pt-2">
+            <button
+              type="button"
+              onclick="closeAddMasterModal()"
+              class="px-4 py-2 text-slate-400 hover:text-white"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold"
+            >
+              Lưu Trạm Mới
             </button>
           </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 2: DỰ BÁO THỜI TIẾT 7 NGÀY -->
+    <div
+      id="weather-forecast-modal"
+      class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl"
+      >
+        <div
+          class="flex justify-between items-center border-b border-slate-700 pb-3"
+        >
+          <h3
+            class="text-base font-bold text-amber-400 flex items-center space-x-2"
+          >
+            <i class="fa-solid fa-cloud-sun"></i>
+            <span
+              >Dự Báo Thời Tiết 7 Ngày -
+              <span id="forecast-modal-city" class="text-emerald-300"
+                >Tiền Giang</span
+              ></span
+            >
+          </h3>
+          <button
+            onclick="closeWeatherForecastModal()"
+            class="text-slate-400 hover:text-white"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div
+          id="forecast-7days-list"
+          class="space-y-2.5 max-h-96 overflow-y-auto pr-1"
+        ></div>
+        <div class="text-right pt-2">
+          <button
+            onclick="closeWeatherForecastModal()"
+            class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-1.5 rounded-lg text-xs"
+          >
+            Đóng
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- CUSTOM JAVASCRIPT FILES -->
+    <!-- CUSTOM JS -->
     <script src="js/map.js"></script>
     <script src="js/app.js"></script>
   </body>
