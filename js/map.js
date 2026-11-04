@@ -5,21 +5,21 @@ let MASTER_NODES_DATA = {
     location: "Tiền Giang",
     lat: 10.3563,
     lng: 106.3631,
-    childNodes: ["node_1", "node_2", "node_3"],
+    childNodes: ["node_1_1", "node_1_2", "node_1_3"],
   },
   master_2: {
     name: "Master 02 - Bến Tre",
     location: "Ben Tre",
     lat: 10.2431,
     lng: 106.3751,
-    childNodes: ["node_4", "node_5", "node_6"],
+    childNodes: ["node_2_1", "node_2_2", "node_2_3"],
   },
   master_3: {
     name: "Master 03 - Lâm Đồng",
     location: "Da Lat",
     lat: 11.9404,
     lng: 108.4583,
-    childNodes: ["node_7", "node_8", "node_9"],
+    childNodes: ["node_3_1", "node_3_2", "node_3_3"],
   },
 };
 
@@ -40,6 +40,14 @@ function loadSavedMasterNodes() {
   }
 }
 
+// LƯU DỮ LIỆU MASTER NODE VÀ NỔI SLAVE NODE VÀO LOCAL STORAGE
+function saveMasterNodesToStorage() {
+  localStorage.setItem(
+    "custom_master_nodes",
+    JSON.stringify(MASTER_NODES_DATA),
+  );
+}
+
 // KHỞI TẠO BẢN ĐỒ LEAFLET
 function initLeafletMap() {
   if (map) return;
@@ -58,7 +66,6 @@ function initLeafletMap() {
 
 // VẼ LẠI TOÀN BỘ GHIM TRÊN BẢN ĐỒ
 function renderAllMarkers() {
-  // Xóa marker cũ
   Object.keys(markers).forEach((k) => map.removeLayer(markers[k]));
   markers = {};
 
@@ -99,16 +106,20 @@ function switchMasterNode(masterKey) {
   const data = MASTER_NODES_DATA[masterKey];
   if (!data) return;
 
-  document.getElementById("current-master-label").innerText = data.name;
-  document.getElementById("farm-location").innerText = data.location;
+  const currentMasterLabel = document.getElementById("current-master-label");
+  if (currentMasterLabel) currentMasterLabel.innerText = data.name;
+
+  const farmLocation = document.getElementById("farm-location");
+  if (farmLocation) farmLocation.innerText = data.location;
 
   if (map) {
     map.flyTo([data.lat, data.lng], 10);
     if (markers[masterKey]) markers[masterKey].openPopup();
   }
 
-  if (typeof renderChildNodesUI === "function")
+  if (typeof renderChildNodesUI === "function") {
     renderChildNodesUI(data.childNodes);
+  }
   if (typeof fetchWeather === "function") fetchWeather(data.location);
   if (typeof fetchSensorData === "function") fetchSensorData();
 }
@@ -129,7 +140,6 @@ function handleAddMasterNode(e) {
   }
 
   const key = `master_${id}`;
-  // Tạo 3 node con mặc định cho trạm mới
   const childNodes = [`node_${id}_1`, `node_${id}_2`, `node_${id}_3`];
 
   MASTER_NODES_DATA[key] = {
@@ -140,12 +150,8 @@ function handleAddMasterNode(e) {
     childNodes: childNodes,
   };
 
-  // Lưu vào localStorage
-  const saved = JSON.parse(localStorage.getItem("custom_master_nodes") || "{}");
-  saved[key] = MASTER_NODES_DATA[key];
-  localStorage.setItem("custom_master_nodes", JSON.stringify(saved));
+  saveMasterNodesToStorage();
 
-  // Cập nhật giao diện
   renderAllMarkers();
   updateMasterSelectOptions();
   switchMasterNode(key);
@@ -164,8 +170,83 @@ function closeAddMasterModal() {
   if (modal) modal.classList.add("hidden");
 }
 
+// XÓA TRẠM MASTER ĐANG CHỌN
+function deleteCurrentMasterNode() {
+  const keys = Object.keys(MASTER_NODES_DATA);
+
+  if (keys.length <= 1) {
+    alert("⚠️ Không thể xóa! Hệ thống phải duy trì ít nhất 01 Trạm Master.");
+    return;
+  }
+
+  const currentData = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentData) return;
+
+  const confirmDelete = confirm(
+    `Bạn có chắc chắn muốn xóa "${currentData.name}" khỏi hệ thống không?`,
+  );
+  if (!confirmDelete) return;
+
+  const keyToDelete = currentMasterKey;
+
+  delete MASTER_NODES_DATA[keyToDelete];
+  saveMasterNodesToStorage();
+
+  if (markers[keyToDelete] && map) {
+    map.removeLayer(markers[keyToDelete]);
+    delete markers[keyToDelete];
+  }
+
+  const nextKey = Object.keys(MASTER_NODES_DATA)[0];
+  updateMasterSelectOptions();
+  switchMasterNode(nextKey);
+
+  alert(`🗑️ Đã xóa thành công Trạm Master: ${currentData.name}`);
+}
+
+// QUẢN LÝ THÊM / XÓA SLAVE NODE (NODE CON) CHO MASTER ĐANG CHỌN
+function addSlaveNodeToCurrentMaster(slaveId) {
+  const currentMaster = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentMaster) return false;
+  if (!currentMaster.childNodes) currentMaster.childNodes = [];
+
+  if (currentMaster.childNodes.includes(slaveId)) {
+    alert("⚠️ Node con này đã tồn tại trong Trạm Master hiện tại!");
+    return false;
+  }
+
+  currentMaster.childNodes.push(slaveId);
+  saveMasterNodesToStorage();
+  return true;
+}
+
+function deleteSlaveNodeFromMaster(slaveId) {
+  const currentMaster = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentMaster) return;
+
+  const confirmDelete = confirm(
+    `Bạn có chắc muốn xóa Node con "${slaveId}" khỏi trạm này?`,
+  );
+  if (!confirmDelete) return;
+
+  currentMaster.childNodes = currentMaster.childNodes.filter(
+    (id) => id !== slaveId,
+  );
+  saveMasterNodesToStorage();
+
+  if (typeof renderChildNodesUI === "function") {
+    renderChildNodesUI(currentMaster.childNodes);
+  }
+}
+
+// GẮN CÁC HÀM XỬ LÝ VÀ DỮ LIỆU VÀO PHẠM VI TOÀN CỤC (WINDOW)
+window.MASTER_NODES_DATA = MASTER_NODES_DATA;
+window.getCurrentMasterKey = () => currentMasterKey;
 window.initLeafletMap = initLeafletMap;
 window.switchMasterNode = switchMasterNode;
 window.handleAddMasterNode = handleAddMasterNode;
 window.openAddMasterModal = openAddMasterModal;
 window.closeAddMasterModal = closeAddMasterModal;
+window.deleteCurrentMasterNode = deleteCurrentMasterNode;
+window.addSlaveNodeToCurrentMaster = addSlaveNodeToCurrentMaster;
+window.deleteSlaveNodeFromMaster = deleteSlaveNodeFromMaster;
