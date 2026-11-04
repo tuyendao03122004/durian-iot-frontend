@@ -400,7 +400,7 @@
           </div>
         </div>
 
-        <!-- BẢNG ĐIỀU KHIỂN BƠM -->
+        <!-- BẢNG ĐIỀU KHIỂN NODE PUMP WI-FI VÀ NODE CON -->
         <div class="glass p-5 rounded-2xl space-y-4 border border-slate-700/60">
           <div class="flex justify-between items-center flex-wrap gap-2">
             <h2
@@ -408,7 +408,7 @@
             >
               <i class="fa-solid fa-faucet-drip text-blue-400"></i>
               <span
-                >Điều Khiển Bơm Tưới Các Node Con (<span
+                >Quản Lý Node Pump Wi-Fi & Node Con (<span
                   id="current-master-label"
                   class="text-emerald-400"
                   >Master 01</span
@@ -444,6 +444,84 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <!-- 3. CHATBOT AI TƯ VẤN NÔNG NGHIỆP (FLOATING WIDGET) -->
+    <div class="fixed bottom-6 right-6 z-50">
+      <!-- NÚT BẬT/TẮT CHATBOX -->
+      <button
+        onclick="toggleChatbox()"
+        class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 cursor-pointer border border-emerald-400/40 group"
+        title="Trợ lý AI Nông Nghiệp"
+      >
+        <i class="fa-solid fa-robot text-xl"></i>
+        <span
+          class="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 ease-in-out text-xs font-bold pl-0 group-hover:pl-2"
+        >
+          Hỏi Trợ Lý AI
+        </span>
+      </button>
+
+      <!-- CỬA SỔ CHATBOT -->
+      <div
+        id="chatbox-window"
+        class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-800/95 border border-slate-700/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[480px] transition-all duration-300"
+      >
+        <!-- HEADER CHATBOX -->
+        <div
+          class="bg-slate-900/90 px-4 py-3 border-b border-slate-700/80 flex justify-between items-center"
+        >
+          <div class="flex items-center space-x-2">
+            <span
+              class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"
+            ></span>
+            <h3
+              class="font-bold text-xs text-emerald-300 flex items-center space-x-1.5"
+            >
+              <i class="fa-solid fa-robot"></i>
+              <span>Trợ Lý AI Vườn Sầu Riêng</span>
+            </h3>
+          </div>
+          <button
+            onclick="toggleChatbox()"
+            class="text-slate-400 hover:text-white text-sm cursor-pointer"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- NỘI DUNG TIN NHẮN -->
+        <div
+          id="chat-messages"
+          class="flex-1 p-4 space-y-3 overflow-y-auto text-xs"
+        >
+          <div
+            class="bg-slate-700/60 text-slate-200 p-3 rounded-xl max-w-[85%] border border-slate-600/40"
+          >
+            Xin chào! Tôi là Trợ lý AI nông nghiệp. Bạn cần tư vấn về kỹ thuật
+            chăm sóc sầu riêng, bệnh hại hay quy trình tưới nước?
+          </div>
+        </div>
+
+        <!-- Ô NHẬP TIN NHẮN -->
+        <div
+          class="p-3 bg-slate-900/90 border-t border-slate-700/80 flex space-x-2"
+        >
+          <input
+            id="chat-input"
+            type="text"
+            placeholder="Nhập câu hỏi cho AI..."
+            onkeypress="if (event.key === 'Enter') sendChatMessage();"
+            class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500"
+          />
+          <button
+            onclick="sendChatMessage()"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+          >
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- MODAL 1: THÊM TRẠM MASTER MỚI -->

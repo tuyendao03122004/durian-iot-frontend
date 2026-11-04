@@ -1,4 +1,4 @@
-// DỮ LIỆU MẶC ĐỊNH CÁC MASTER NODE
+// DỮ LIỆU MẶC ĐỊNH CÁC MASTER NODE (Node Pump kết nối Wi-Fi trực tiếp Server)
 const DEFAULT_MASTER_NODES = {
   master_1: {
     name: "Master 01 - Tiền Giang",
@@ -6,6 +6,15 @@ const DEFAULT_MASTER_NODES = {
     lat: 10.3563,
     lng: 106.3631,
     childNodes: ["node_1_1", "node_1_2", "node_1_3"],
+    pumpNode: {
+      id: "pump_wifi_1",
+      name: "Node Pump 01 (Wi-Fi Direct)",
+      status: false, // false: Tắt, true: Bật
+      mode: "auto", // "auto": Tự động, "manual": Thủ công
+      minThreshold: 50, // Bật bơm khi Độ ẩm đất < 50%
+      maxThreshold: 80, // Tắt bơm khi Độ ẩm đất > 80%
+      connection: "Wi-Fi / MQTT",
+    },
   },
   master_2: {
     name: "Master 02 - Bến Tre",
@@ -13,6 +22,15 @@ const DEFAULT_MASTER_NODES = {
     lat: 10.2431,
     lng: 106.3751,
     childNodes: ["node_2_1", "node_2_2", "node_2_3"],
+    pumpNode: {
+      id: "pump_wifi_2",
+      name: "Node Pump 02 (Wi-Fi Direct)",
+      status: false,
+      mode: "manual",
+      minThreshold: 45,
+      maxThreshold: 75,
+      connection: "Wi-Fi / MQTT",
+    },
   },
   master_3: {
     name: "Master 03 - Lâm Đồng",
@@ -20,6 +38,15 @@ const DEFAULT_MASTER_NODES = {
     lat: 11.9404,
     lng: 108.4583,
     childNodes: ["node_3_1", "node_3_2", "node_3_3"],
+    pumpNode: {
+      id: "pump_wifi_3",
+      name: "Node Pump 03 (Wi-Fi Direct)",
+      status: false,
+      mode: "auto",
+      minThreshold: 50,
+      maxThreshold: 80,
+      connection: "Wi-Fi / MQTT",
+    },
   },
 };
 
@@ -187,11 +214,73 @@ function switchMasterNode(masterKey) {
     if (markers[masterKey]) markers[masterKey].openPopup();
   }
 
-  if (typeof renderChildNodesUI === "function") {
+  if (typeof renderMasterPumpAndChildNodes === "function") {
+    renderMasterPumpAndChildNodes(data);
+  } else if (typeof renderChildNodesUI === "function") {
     renderChildNodesUI(data.childNodes);
   }
   if (typeof fetchWeather === "function") fetchWeather(data.location);
   if (typeof fetchSensorData === "function") fetchSensorData();
+}
+
+// XỬ LÝ ĐIỀU KHIỂN ĐỘ ẨM & CHẾ ĐỘ BƠM (AUTO / MANUAL)
+function setMasterPumpMode(mode) {
+  const currentMaster = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentMaster || !currentMaster.pumpNode) return;
+
+  currentMaster.pumpNode.mode = mode;
+  saveMasterNodesToStorage();
+
+  if (typeof renderMasterPumpAndChildNodes === "function") {
+    renderMasterPumpAndChildNodes(currentMaster);
+  }
+}
+
+function toggleMasterPumpPower(status) {
+  const currentMaster = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentMaster || !currentMaster.pumpNode) return;
+
+  if (currentMaster.pumpNode.mode === "auto") {
+    alert(
+      "⚠️ Máy bơm đang ở chế độ TỰ ĐỘNG. Vui lòng chuyển sang THỦ CÔNG để chủ động Bật/Tắt!",
+    );
+    return;
+  }
+
+  currentMaster.pumpNode.status = status;
+  saveMasterNodesToStorage();
+
+  if (typeof renderMasterPumpAndChildNodes === "function") {
+    renderMasterPumpAndChildNodes(currentMaster);
+  }
+}
+
+function updateMasterPumpMinThreshold(value) {
+  const currentMaster = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentMaster || !currentMaster.pumpNode) return;
+
+  const val = parseFloat(value) || 50;
+  if (val >= currentMaster.pumpNode.maxThreshold) {
+    alert("⚠️ Ngưỡng bật (< %) phải nhỏ hơn Ngưỡng tắt (> %)!");
+    return;
+  }
+
+  currentMaster.pumpNode.minThreshold = val;
+  saveMasterNodesToStorage();
+}
+
+function updateMasterPumpMaxThreshold(value) {
+  const currentMaster = MASTER_NODES_DATA[currentMasterKey];
+  if (!currentMaster || !currentMaster.pumpNode) return;
+
+  const val = parseFloat(value) || 80;
+  if (val <= currentMaster.pumpNode.minThreshold) {
+    alert("⚠️ Ngưỡng tắt (> %) phải lớn hơn Ngưỡng bật (< %)!");
+    return;
+  }
+
+  currentMaster.pumpNode.maxThreshold = val;
+  saveMasterNodesToStorage();
 }
 
 // HÀM TÌM TỌA ĐỘ THÔNG MINH (HỖ TRỢ: ĐỊA CHỈ, TỌA ĐỘ VĨ/KINH, LINK GOOGLE MAPS)
@@ -289,7 +378,7 @@ function applyFoundCoordinates(lat, lng, cityName) {
   alert(`📍 Đã xác định vị trí thành công:\nVĩ độ: ${lat}\nKinh độ: ${lng}`);
 }
 
-// THÊM TRẠM MASTER MỚI TỪ FORM MODAL
+// THÊM TRẠM MASTER MỚI TỪ FORM MODAL (TỰ ĐỘNG TẠO NODE PUMP WI-FI ĐỘC LẬP)
 function handleAddMasterNode(e) {
   if (e) e.preventDefault();
 
@@ -327,6 +416,15 @@ function handleAddMasterNode(e) {
     lat: lat,
     lng: lng,
     childNodes: childNodes,
+    pumpNode: {
+      id: `pump_wifi_${id}`,
+      name: `Node Pump ${id} (Wi-Fi Direct)`,
+      status: false,
+      mode: "auto",
+      minThreshold: 50,
+      maxThreshold: 80,
+      connection: "Wi-Fi / MQTT",
+    },
   };
 
   saveMasterNodesToStorage();
@@ -348,7 +446,9 @@ function handleAddMasterNode(e) {
   if (addressInput) addressInput.value = "";
 
   closeAddMasterModal();
-  alert(`Đã thêm thành công Trạm Master: ${name}`);
+  alert(
+    `Đã thêm thành công Trạm Master mới cùng Node Pump Wi-Fi độc lập: ${name}`,
+  );
 }
 
 function openAddMasterModal() {
@@ -379,7 +479,7 @@ function deleteCurrentMasterNode() {
   if (!currentData) return;
 
   const confirmDelete = confirm(
-    `Bạn có chắc chắn muốn xóa "${currentData.name}" khỏi hệ thống không?`,
+    `Bạn có chắc chắn muốn xóa "${currentData.name}" cùng Node Pump Wi-Fi đi kèm không?`,
   );
   if (!confirmDelete) return;
 
@@ -430,7 +530,9 @@ function deleteSlaveNodeFromMaster(slaveId) {
   );
   saveMasterNodesToStorage();
 
-  if (typeof renderChildNodesUI === "function") {
+  if (typeof renderMasterPumpAndChildNodes === "function") {
+    renderMasterPumpAndChildNodes(currentMaster);
+  } else if (typeof renderChildNodesUI === "function") {
     renderChildNodesUI(currentMaster.childNodes);
   }
 }
@@ -448,3 +550,7 @@ window.closeAddMasterModal = closeAddMasterModal;
 window.deleteCurrentMasterNode = deleteCurrentMasterNode;
 window.addSlaveNodeToCurrentMaster = addSlaveNodeToCurrentMaster;
 window.deleteSlaveNodeFromMaster = deleteSlaveNodeFromMaster;
+window.setMasterPumpMode = setMasterPumpMode;
+window.toggleMasterPumpPower = toggleMasterPumpPower;
+window.updateMasterPumpMinThreshold = updateMasterPumpMinThreshold;
+window.updateMasterPumpMaxThreshold = updateMasterPumpMaxThreshold;

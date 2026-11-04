@@ -28,9 +28,13 @@ function checkAuthSession() {
       initDashboardSystem();
       isSystemInitialized = true;
     }
-  } else {
-    if (loginScreen) loginScreen.classList.remove("hidden");
-    if (dashboardScreen) dashboardScreen.classList.add("hidden");
+
+    // Ép bản đồ cập nhật lại kích thước sau khi bỏ class hidden
+    setTimeout(() => {
+      if (window.map) {
+        window.map.invalidateSize();
+      }
+    }, 300);
   }
 }
 
@@ -102,6 +106,9 @@ function initDashboardSystem() {
   updateRealtimeClock();
 
   setInterval(fetchSensorData, 5000);
+
+  // Tự động kiểm tra logic bật/tắt máy bơm Wi-Fi mỗi 3 giây
+  setInterval(evaluateAutoPumpLogic, 3000);
 }
 
 function updateRealtimeClock() {
@@ -112,95 +119,215 @@ function updateRealtimeClock() {
 }
 
 // ==========================================
-// 3. XỬ LÝ ĐIỀU KHIỂN BƠM & QUẢN LÝ NODE CON (SLAVE)
+// 3. XỬ LÝ ĐIỀU KHIỂN NODE PUMP WI-FI (2 NGƯỠNG MIN/MAX) & NODE CON (SLAVE)
 // ==========================================
-function renderChildNodesUI(childNodesList) {
+
+// Render giao diện Bảng Điều Khiển Node Pump Wi-Fi + Các Node con Slave
+function renderMasterPumpAndChildNodes(masterData) {
   const container = document.getElementById("child-nodes-container");
   if (!container) return;
   container.innerHTML = "";
 
-  // Nếu không truyền danh sách, tự động lấy danh sách node con từ Master Node đang chọn
-  if (!childNodesList) {
+  if (!masterData) {
     const currentKey = window.getCurrentMasterKey
       ? window.getCurrentMasterKey()
       : "master_1";
-    const masterData = window.MASTER_NODES_DATA
+    masterData = window.MASTER_NODES_DATA
       ? window.MASTER_NODES_DATA[currentKey]
       : null;
-    childNodesList =
-      masterData && masterData.childNodes ? masterData.childNodes : [];
   }
+  if (!masterData) return;
 
-  if (childNodesList.length === 0) {
-    container.innerHTML = `
-      <div class="col-span-full text-center py-6 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50">
-        Chưa có Node con nào thuộc Trạm Master này. Hãy nhấn nút "Thêm Node Con" để tạo mới.
+  const pump = masterData.pumpNode || {
+    id: `pump_wifi_default`,
+    name: "Node Pump (Wi-Fi Direct)",
+    status: false,
+    mode: "auto",
+    minThreshold: 50,
+    maxThreshold: 80,
+    connection: "Wi-Fi / MQTT",
+  };
+
+  const isAuto = pump.mode === "auto";
+
+  // A. CARD ĐIỀU KHIỂN NODE PUMP WI-FI
+  const pumpCard = document.createElement("div");
+  pumpCard.className =
+    "col-span-1 md:col-span-3 bg-slate-800/90 border-2 border-amber-500/50 rounded-2xl p-4 shadow-xl space-y-4";
+  pumpCard.innerHTML = `
+    <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-700/80 pb-3">
+      <div class="flex items-center space-x-2.5">
+        <span class="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl text-xl"><i class="fa-solid fa-wifi"></i></span>
+        <div>
+          <h3 class="font-bold text-sm text-slate-100 flex items-center space-x-2">
+            <span>${pump.name} (${pump.id})</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full ${pump.status ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-slate-700 text-slate-400"} font-mono">
+              ${pump.status ? "🟢 BƠM ĐANG BẬT" : "🔴 BƠM ĐÃ TẮT"}
+            </span>
+          </h3>
+          <p class="text-[11px] text-slate-400">Kết nối: <span class="text-blue-400 font-semibold">${pump.connection || "Wi-Fi / MQTT"}</span> | Trực thuộc: <b class="text-emerald-400">${masterData.name}</b></p>
+        </div>
       </div>
-    `;
+
+      <!-- CÔNG TẮC AUTO / MANUAL -->
+      <div class="flex bg-slate-900/90 p-1 rounded-xl border border-slate-700 text-xs font-semibold">
+        <button onclick="window.setMasterPumpMode('auto')" class="px-3 py-1.5 rounded-lg transition ${isAuto ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"} flex items-center space-x-1 cursor-pointer">
+          <i class="fa-solid fa-robot"></i>
+          <span>Tự Động</span>
+        </button>
+        <button onclick="window.setMasterPumpMode('manual')" class="px-3 py-1.5 rounded-lg transition ${!isAuto ? "bg-amber-600 text-white shadow" : "text-slate-400 hover:text-white"} flex items-center space-x-1 cursor-pointer">
+          <i class="fa-solid fa-hand"></i>
+          <span>Thủ Công</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+      <!-- CÀI ĐẶT 2 NGƯỠNG ĐỘ ẨM MIN/MAX -->
+      <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60 space-y-3">
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-300 font-medium">💧 Ngưỡng BẬT BƠM (Độ ẩm &lt;):</span>
+            <span class="font-bold text-amber-400 font-mono text-xs">${pump.minThreshold}%</span>
+          </div>
+          <input type="range" min="20" max="70" value="${pump.minThreshold}" onchange="window.updateMasterPumpMinThreshold(this.value)" oninput="this.previousElementSibling.querySelector('.text-amber-400').innerText = this.value + '%'" class="w-full accent-amber-500 cursor-pointer">
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-300 font-medium">🌱 Ngưỡng TẮT BƠM (Độ ẩm &gt;):</span>
+            <span class="font-bold text-emerald-400 font-mono text-xs">${pump.maxThreshold}%</span>
+          </div>
+          <input type="range" min="60" max="95" value="${pump.maxThreshold}" onchange="window.updateMasterPumpMaxThreshold(this.value)" oninput="this.previousElementSibling.querySelector('.text-emerald-400').innerText = this.value + '%'" class="w-full accent-emerald-500 cursor-pointer">
+        </div>
+      </div>
+
+      <!-- ĐIỀU KHIỂN BƠM THỦ CÔNG QUA WI-FI -->
+      <div class="flex flex-col space-y-2">
+        <span class="text-[11px] text-slate-400">Điều khiển trực tiếp qua Wi-Fi:</span>
+        <div class="flex space-x-2">
+          <button onclick="executePumpCommand('${window.getCurrentMasterKey ? window.getCurrentMasterKey() : "master_1"}', '${pump.id}', 'ON')" ${isAuto ? 'disabled title="Vô hiệu hóa khi ở chế độ Tự Động"' : ""} class="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition ${pump.status ? "bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-400" : "bg-slate-700 text-slate-300 hover:bg-emerald-600 hover:text-white"} ${isAuto ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-power-off"></i>
+            <span>BẬT BƠM</span>
+          </button>
+          <button onclick="executePumpCommand('${window.getCurrentMasterKey ? window.getCurrentMasterKey() : "master_1"}', '${pump.id}', 'OFF')" ${isAuto ? 'disabled title="Vô hiệu hóa khi ở chế độ Tự Động"' : ""} class="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition ${!pump.status ? "bg-red-600 text-white shadow-lg ring-2 ring-red-400" : "bg-slate-700 text-slate-300 hover:bg-red-600 hover:text-white"} ${isAuto ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-ban"></i>
+            <span>TẮT BƠM</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 italic">Lưu ý: Nút Bật/Tắt thủ công chỉ có hiệu lực khi chuyển sang chế độ <b>Thủ Công</b>.</p>
+      </div>
+    </div>
+  `;
+  container.appendChild(pumpCard);
+
+  // B. DANH SÁCH NODE CON SLAVE (TRUYỀN LORA)
+  const childNodesList = masterData.childNodes || [];
+  if (childNodesList.length === 0) {
+    const emptyCard = document.createElement("div");
+    emptyCard.className =
+      "col-span-1 md:col-span-3 text-center py-4 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50";
+    emptyCard.innerText =
+      "Chưa có Node con cảm biến nào thuộc Trạm Master này. Nhấn 'Thêm Node Con' để tạo mới.";
+    container.appendChild(emptyCard);
     return;
   }
 
   childNodesList.forEach((nodeId, idx) => {
-    if (pumpStates[nodeId] === undefined) pumpStates[nodeId] = false;
-    const isON = pumpStates[nodeId];
-
-    const cardHTML = `
-      <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner relative group">
-          <div>
-              <p class="font-bold text-emerald-300 text-sm">Gốc Sầu Riêng - Node ${idx + 1}</p>
-              <p class="text-[10px] text-slate-400 font-mono mt-0.5">Mã thiết bị: ${nodeId}</p>
-              <p id="status-${nodeId}" class="text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1">
-                  Trạng thái: ${isON ? "🟢 Đang BẬT" : "🔴 Đang TẮT"}
-              </p>
-          </div>
-          <div class="flex items-center space-x-2">
-            <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow cursor-pointer">
-                ${isON ? "TẮT BƠM" : "BẬT BƠM"}
-            </button>
-            <button onclick="window.deleteSlaveNodeFromMaster('${nodeId}')" class="bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white p-2 rounded-lg text-xs transition cursor-pointer" title="Xóa Node con này">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </div>
+    const card = document.createElement("div");
+    card.className =
+      "bg-slate-800/70 border border-slate-700 p-3.5 rounded-xl space-y-2 relative group hover:border-emerald-500/50 transition";
+    card.innerHTML = `
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-xs text-emerald-400 flex items-center space-x-1">
+          <i class="fa-solid fa-microchip"></i>
+          <span>Gốc Sầu Riêng - Node ${idx + 1} (${nodeId})</span>
+        </span>
+        <button onclick="window.deleteSlaveNodeFromMaster('${nodeId}')" class="text-slate-500 hover:text-red-400 text-xs transition cursor-pointer" title="Xóa Node con">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+      <div class="text-[11px] text-slate-300 space-y-1">
+        <div class="flex justify-between"><span>Độ ẩm đất (LoRa):</span> <b class="text-emerald-300">${55 + idx * 4} %</b></div>
+        <div class="flex justify-between"><span>Nhiệt độ lá:</span> <b class="text-amber-300">${28 + idx} °C</b></div>
       </div>
     `;
-    container.innerHTML += cardHTML;
+    container.appendChild(card);
   });
 }
 
-async function togglePump(nodeId) {
-  const nextAction = pumpStates[nodeId] ? "OFF" : "ON";
-  const currentMasterKey = window.getCurrentMasterKey
+// Wrapper duy trì tương thích với giao diện cũ
+function renderChildNodesUI(childNodesList) {
+  const currentKey = window.getCurrentMasterKey
     ? window.getCurrentMasterKey()
     : "master_1";
+  const masterData = window.MASTER_NODES_DATA
+    ? window.MASTER_NODES_DATA[currentKey]
+    : null;
+
+  if (masterData) {
+    if (childNodesList) masterData.childNodes = childNodesList;
+    renderMasterPumpAndChildNodes(masterData);
+  }
+}
+
+// Thực thi lệnh điều khiển Bơm gửi qua Backend (Wi-Fi/MQTT)
+async function executePumpCommand(masterId, pumpId, action) {
+  const currentKey =
+    masterId ||
+    (window.getCurrentMasterKey ? window.getCurrentMasterKey() : "master_1");
+  const master = window.MASTER_NODES_DATA
+    ? window.MASTER_NODES_DATA[currentKey]
+    : null;
 
   try {
     const res = await fetch(`${API_BASE}/control/pump`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        master_id: currentMasterKey,
-        node_id: nodeId,
-        action: nextAction,
+        master_id: currentKey,
+        node_id: pumpId,
+        action: action,
       }),
     });
-    if (res.ok) {
-      pumpStates[nodeId] = !pumpStates[nodeId];
-      const isON = pumpStates[nodeId];
-      const btn = document.getElementById(`btn-${nodeId}`);
-      const status = document.getElementById(`status-${nodeId}`);
-      if (btn) {
-        btn.innerText = isON ? "TẮT BƠM" : "BẬT BƠM";
-        btn.className = `${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow cursor-pointer`;
-      }
-      if (status) {
-        status.innerText = isON
-          ? "Trạng thái: 🟢 Đang BẬT"
-          : "Trạng thái: 🔴 Đang TẮT";
-        status.className = `text-xs font-semibold ${isON ? "text-emerald-400" : "text-slate-400"} mt-1`;
-      }
-    }
   } catch (err) {
-    alert("Lỗi kết nối lệnh bơm!");
+    console.error("Lỗi gửi lệnh bơm Wi-Fi tới Backend:", err);
+  }
+
+  if (master && master.pumpNode) {
+    master.pumpNode.status = action === "ON";
+    if (window.saveMasterNodesToStorage) window.saveMasterNodesToStorage();
+    renderMasterPumpAndChildNodes(master);
+  }
+}
+
+// Độc lập đánh giá độ ẩm đất tự động theo 2 ngưỡng Min/Max
+async function evaluateAutoPumpLogic() {
+  const currentKey = window.getCurrentMasterKey
+    ? window.getCurrentMasterKey()
+    : "master_1";
+  const master = window.MASTER_NODES_DATA
+    ? window.MASTER_NODES_DATA[currentKey]
+    : null;
+  if (!master || !master.pumpNode) return;
+
+  const pump = master.pumpNode;
+  const soilCard = document.getElementById("card-soil");
+  if (!soilCard) return;
+
+  const soilText = soilCard.innerText.replace("%", "").trim();
+  const currentSoilMoisture = parseFloat(soilText);
+  if (isNaN(currentSoilMoisture)) return;
+
+  if (pump.mode === "auto") {
+    // Nếu Độ ẩm đất < Ngưỡng Bật (Min %) -> Tự động Bật Bơm qua Wi-Fi
+    if (currentSoilMoisture < pump.minThreshold && !pump.status) {
+      await executePumpCommand(currentKey, pump.id, "ON");
+    }
+    // Nếu Độ ẩm đất > Ngưỡng Tắt (Max %) -> Tự động Tắt Bơm qua Wi-Fi
+    else if (currentSoilMoisture > pump.maxThreshold && pump.status) {
+      await executePumpCommand(currentKey, pump.id, "OFF");
+    }
   }
 }
 
@@ -529,7 +656,8 @@ function updateChart(logs) {
 // ==========================================
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
-window.togglePump = togglePump;
+window.executePumpCommand = executePumpCommand;
+window.renderMasterPumpAndChildNodes = renderMasterPumpAndChildNodes;
 window.renderChildNodesUI = renderChildNodesUI;
 window.openAddSlaveModal = openAddSlaveModal;
 window.closeAddSlaveModal = closeAddSlaveModal;
