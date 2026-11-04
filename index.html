@@ -449,7 +449,7 @@
     <!-- MODAL 1: THÊM TRẠM MASTER MỚI -->
     <div
       id="add-master-modal"
-      class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 pointer-events-auto"
     >
       <div
         class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl"
@@ -470,6 +470,18 @@
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
+
+        <!-- HƯỚNG DẪN MẸO CHỌN BẢN ĐỒ -->
+        <div
+          class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-[11px] text-amber-300 flex items-center space-x-2"
+        >
+          <i class="fa-solid fa-hand-pointer text-amber-400 text-sm"></i>
+          <span
+            ><b>Mẹo nhanh:</b> Bạn có thể nhấp trực tiếp vào bản đồ Vệ tinh phía
+            sau để chọn vị trí chính xác!</span
+          >
+        </div>
+
         <form onsubmit="handleAddMasterNode(event)" class="space-y-3 text-xs">
           <div>
             <label class="text-slate-300 font-medium block mb-1"
@@ -496,16 +508,16 @@
             />
           </div>
 
-          <!-- Ô NHẬP ĐỊA CHỈ & NÚT TÌM TỌA ĐỘ TỰ ĐỘNG -->
+          <!-- Ô NHẬP ĐỊA CHỈ / TỌA ĐỘ / LINK GOOGLE MAPS -->
           <div>
             <label class="text-slate-300 font-medium block mb-1"
-              >🔍 Nhập Địa Chỉ Nông Trại để tìm tọa độ</label
+              >🔍 Nhập Địa chỉ, Tọa độ hoặc Link Google Maps</label
             >
             <div class="flex space-x-2">
               <input
                 id="new-master-address"
                 type="text"
-                placeholder="VD: Chợ Lách, Bến Tre"
+                placeholder="VD: Mang Yang Gia Lai hoặc dán Tọa độ / Link Google Maps"
                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
               />
               <button
@@ -514,7 +526,7 @@
                 class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2.5 rounded-lg font-bold flex items-center space-x-1 whitespace-nowrap cursor-pointer transition"
               >
                 <i class="fa-solid fa-magnifying-glass-location"></i>
-                <span>Tìm Tọa Độ</span>
+                <span>Tìm</span>
               </button>
             </div>
           </div>
@@ -526,7 +538,7 @@
             <input
               id="new-master-city"
               type="text"
-              placeholder="VD: Vĩnh Long"
+              placeholder="VD: Gia Lai"
               required
               class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
             />
@@ -540,7 +552,7 @@
                 id="new-master-lat"
                 type="number"
                 step="any"
-                placeholder="VD: 10.2537"
+                placeholder="VD: 13.9871"
                 required
                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
               />
@@ -553,7 +565,7 @@
                 id="new-master-lng"
                 type="number"
                 step="any"
-                placeholder="VD: 105.9722"
+                placeholder="VD: 108.1234"
                 required
                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
               />
