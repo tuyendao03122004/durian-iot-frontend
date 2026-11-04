@@ -159,6 +159,49 @@ function switchMasterNode(masterKey) {
   if (typeof fetchSensorData === "function") fetchSensorData();
 }
 
+// HÀM TÌM TỌA ĐỘ VĨ ĐỘ / KINH ĐỘ TỰ ĐỘNG TỪ ĐỊA CHỈ
+async function searchAddressCoordinates() {
+  const addressInput = document.getElementById("new-master-address");
+  if (!addressInput) return;
+  const address = addressInput.value.trim();
+
+  if (!address) {
+    alert("⚠️ Vui lòng nhập địa chỉ nông trại cần tìm!");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
+    );
+    const data = await response.json();
+
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lon = parseFloat(data[0].lon);
+
+      // Tự động điền Vĩ độ và Kinh độ vào Form
+      document.getElementById("new-master-lat").value = lat;
+      document.getElementById("new-master-lng").value = lon;
+
+      // Nếu ô Tên Vùng / Tỉnh Thành chưa nhập, lấy từ địa chỉ nhập vào
+      const cityInput = document.getElementById("new-master-city");
+      if (cityInput && !cityInput.value.trim()) {
+        const addressParts = address.split(",");
+        cityInput.value = addressParts[addressParts.length - 1].trim();
+      }
+
+      alert(`📍 Đã tìm thấy tọa độ:\nVĩ độ: ${lat}\nKinh độ: ${lon}`);
+    } else {
+      alert(
+        "❌ Không tìm thấy tọa độ cho địa chỉ này. Vui lòng thử lại với tên huyện/tỉnh rõ ràng hơn!",
+      );
+    }
+  } catch (err) {
+    alert("❌ Lỗi kết nối dịch vụ định vị địa chỉ!");
+  }
+}
+
 // THÊM TRẠM MASTER MỚI TỪ FORM MODAL
 function handleAddMasterNode(e) {
   if (e) e.preventDefault();
@@ -168,6 +211,7 @@ function handleAddMasterNode(e) {
   const cityInput = document.getElementById("new-master-city");
   const latInput = document.getElementById("new-master-lat");
   const lngInput = document.getElementById("new-master-lng");
+  const addressInput = document.getElementById("new-master-address");
 
   if (!idInput || !nameInput || !cityInput || !latInput || !lngInput) return;
 
@@ -204,11 +248,13 @@ function handleAddMasterNode(e) {
   updateMasterSelectOptions();
   switchMasterNode(key);
 
+  // Xóa trắng dữ liệu form sau khi lưu thành công
   idInput.value = "";
   nameInput.value = "";
   cityInput.value = "";
   latInput.value = "";
   lngInput.value = "";
+  if (addressInput) addressInput.value = "";
 
   closeAddMasterModal();
   alert(`Đã thêm thành công Trạm Master: ${name}`);
@@ -299,6 +345,7 @@ window.getCurrentMasterKey = () => currentMasterKey;
 window.initLeafletMap = initLeafletMap;
 window.refreshMapSize = refreshMapSize;
 window.switchMasterNode = switchMasterNode;
+window.searchAddressCoordinates = searchAddressCoordinates;
 window.handleAddMasterNode = handleAddMasterNode;
 window.openAddMasterModal = openAddMasterModal;
 window.closeAddMasterModal = closeAddMasterModal;

@@ -201,7 +201,7 @@
 
       <!-- MAIN DASHBOARD CONTENT -->
       <main class="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto space-y-6">
-        <!-- THẺ THỐNG KÊ CẢM BIẾN CHUẨN ẢNH 1 -->
+        <!-- THẺ THỐNG KÊ CẢM BIẾN -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div
             class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-amber-500 shadow"
@@ -495,6 +495,30 @@
               class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
             />
           </div>
+
+          <!-- Ô NHẬP ĐỊA CHỈ & NÚT TÌM TỌA ĐỘ TỰ ĐỘNG -->
+          <div>
+            <label class="text-slate-300 font-medium block mb-1"
+              >🔍 Nhập Địa Chỉ Nông Trại để tìm tọa độ</label
+            >
+            <div class="flex space-x-2">
+              <input
+                id="new-master-address"
+                type="text"
+                placeholder="VD: Chợ Lách, Bến Tre"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onclick="searchAddressCoordinates()"
+                class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2.5 rounded-lg font-bold flex items-center space-x-1 whitespace-nowrap cursor-pointer transition"
+              >
+                <i class="fa-solid fa-magnifying-glass-location"></i>
+                <span>Tìm Tọa Độ</span>
+              </button>
+            </div>
+          </div>
+
           <div>
             <label class="text-slate-300 font-medium block mb-1"
               >Tên Vùng / Tỉnh Thành</label
