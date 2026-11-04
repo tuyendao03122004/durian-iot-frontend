@@ -159,7 +159,7 @@ function switchMasterNode(masterKey) {
   if (typeof fetchSensorData === "function") fetchSensorData();
 }
 
-// HÀM TÌM TỌA ĐỘ VĨ ĐỘ / KINH ĐỘ TỰ ĐỘNG TỪ ĐỊA CHỈ
+// HÀM TÌM TỌA ĐỘ VĨ ĐỘ / KINH ĐỘ TỰ ĐỘNG TỪ ĐỊA CHỈ (ĐÃ SỬA LỖI DNS)
 async function searchAddressCoordinates() {
   const addressInput = document.getElementById("new-master-address");
   if (!addressInput) return;
@@ -171,34 +171,59 @@ async function searchAddressCoordinates() {
   }
 
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
+    // 1. Thử tìm kiếm với Open-Meteo Geocoding API (miễn phí, không chặn DNS tại VN)
+    let response = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(address)}&count=1&language=vi&format=json`,
     );
-    const data = await response.json();
+    let data = await response.json();
 
-    if (data && data.length > 0) {
-      const lat = parseFloat(data[0].lat);
-      const lon = parseFloat(data[0].lon);
+    if (data && data.results && data.results.length > 0) {
+      const location = data.results[0];
+      const lat = location.latitude;
+      const lon = location.longitude;
 
-      // Tự động điền Vĩ độ và Kinh độ vào Form
       document.getElementById("new-master-lat").value = lat;
       document.getElementById("new-master-lng").value = lon;
 
-      // Nếu ô Tên Vùng / Tỉnh Thành chưa nhập, lấy từ địa chỉ nhập vào
       const cityInput = document.getElementById("new-master-city");
       if (cityInput && !cityInput.value.trim()) {
-        const addressParts = address.split(",");
-        cityInput.value = addressParts[addressParts.length - 1].trim();
+        cityInput.value = location.admin1 || location.name || address;
       }
 
       alert(`📍 Đã tìm thấy tọa độ:\nVĩ độ: ${lat}\nKinh độ: ${lon}`);
-    } else {
-      alert(
-        "❌ Không tìm thấy tọa độ cho địa chỉ này. Vui lòng thử lại với tên huyện/tỉnh rõ ràng hơn!",
-      );
+      return;
     }
+
+    // 2. Dự phòng: Thử tìm kiếm với Photon API nếu Open-Meteo không có kết quả
+    response = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(address)}&limit=1`,
+    );
+    data = await response.json();
+
+    if (data && data.features && data.features.length > 0) {
+      const coords = data.features[0].geometry.coordinates; // [lng, lat]
+      const props = data.features[0].properties;
+      const lat = coords[1];
+      const lon = coords[0];
+
+      document.getElementById("new-master-lat").value = lat;
+      document.getElementById("new-master-lng").value = lon;
+
+      const cityInput = document.getElementById("new-master-city");
+      if (cityInput && !cityInput.value.trim()) {
+        cityInput.value = props.state || props.city || props.name || address;
+      }
+
+      alert(`📍 Đã tìm thấy tọa độ:\nVĩ độ: ${lat}\nKinh độ: ${lon}`);
+      return;
+    }
+
+    alert(
+      "❌ Không tìm thấy tọa độ cho địa chỉ này. Vui lòng thử lại với tên Huyện / Tỉnh rõ ràng hơn (VD: Mang Yang, Gia Lai hoặc Pleiku)!",
+    );
   } catch (err) {
-    alert("❌ Lỗi kết nối dịch vụ định vị địa chỉ!");
+    console.error("Lỗi định vị địa chỉ:", err);
+    alert("❌ Lỗi kết nối dịch vụ định vị địa chỉ! Vui lòng thử lại.");
   }
 }
 
@@ -248,7 +273,6 @@ function handleAddMasterNode(e) {
   updateMasterSelectOptions();
   switchMasterNode(key);
 
-  // Xóa trắng dữ liệu form sau khi lưu thành công
   idInput.value = "";
   nameInput.value = "";
   cityInput.value = "";
