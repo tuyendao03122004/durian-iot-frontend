@@ -1,5 +1,5 @@
-// DỮ LIỆU CÁC MASTER NODE (Hỗ trợ lưu & khôi phục từ localStorage)
-let MASTER_NODES_DATA = {
+// DỮ LIỆU MẶC ĐỊNH CÁC MASTER NODE
+const DEFAULT_MASTER_NODES = {
   master_1: {
     name: "Master 01 - Tiền Giang",
     location: "Tiền Giang",
@@ -23,6 +23,7 @@ let MASTER_NODES_DATA = {
   },
 };
 
+let MASTER_NODES_DATA = { ...DEFAULT_MASTER_NODES };
 let currentMasterKey = "master_1";
 let map = null;
 let markers = {};
@@ -33,11 +34,15 @@ function loadSavedMasterNodes() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      MASTER_NODES_DATA = { ...MASTER_NODES_DATA, ...parsed };
+      if (parsed && Object.keys(parsed).length > 0) {
+        MASTER_NODES_DATA = parsed;
+      }
     } catch (e) {
       console.error("Lỗi đọc dữ liệu Master Nodes từ bộ nhớ");
     }
   }
+  // Đồng bộ sang window để app.js truy cập chính xác
+  window.MASTER_NODES_DATA = MASTER_NODES_DATA;
 }
 
 // LƯU DỮ LIỆU MASTER NODE VÀ SLAVE NODE VÀO LOCAL STORAGE
@@ -46,6 +51,7 @@ function saveMasterNodesToStorage() {
     "custom_master_nodes",
     JSON.stringify(MASTER_NODES_DATA),
   );
+  window.MASTER_NODES_DATA = MASTER_NODES_DATA;
 }
 
 // HÀM LÀM MỚI KÍCH THƯỚC BẢN ĐỒ (SỬA LỖI Ô XÁM TILE MAP)
@@ -68,7 +74,16 @@ function initLeafletMap() {
   }
   loadSavedMasterNodes();
 
-  map = L.map("map").setView([10.3563, 106.3631], 8);
+  // Đảm bảo currentMasterKey hợp lệ nếu trạm mặc định bị xóa
+  if (!MASTER_NODES_DATA[currentMasterKey]) {
+    currentMasterKey = Object.keys(MASTER_NODES_DATA)[0] || "master_1";
+  }
+
+  const currentData = MASTER_NODES_DATA[currentMasterKey] || {
+    lat: 10.3563,
+    lng: 106.3631,
+  };
+  map = L.map("map").setView([currentData.lat, currentData.lng], 8);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -77,6 +92,7 @@ function initLeafletMap() {
 
   renderAllMarkers();
   updateMasterSelectOptions();
+  switchMasterNode(currentMasterKey);
 
   // Ép bản đồ cập nhật lại khung hiển thị sau khi khởi tạo
   refreshMapSize();
@@ -121,9 +137,9 @@ function updateMasterSelectOptions() {
 
 // CHUYỂN ĐỔI TRẠM MASTER HIỆN TẠI
 function switchMasterNode(masterKey) {
+  if (!MASTER_NODES_DATA[masterKey]) return;
   currentMasterKey = masterKey;
   const data = MASTER_NODES_DATA[masterKey];
-  if (!data) return;
 
   const currentMasterLabel = document.getElementById("current-master-label");
   if (currentMasterLabel) currentMasterLabel.innerText = data.name;
@@ -148,11 +164,19 @@ function switchMasterNode(masterKey) {
 function handleAddMasterNode(e) {
   if (e) e.preventDefault();
 
-  const id = document.getElementById("new-master-id").value.trim();
-  const name = document.getElementById("new-master-name").value.trim();
-  const city = document.getElementById("new-master-city").value.trim();
-  const lat = parseFloat(document.getElementById("new-master-lat").value);
-  const lng = parseFloat(document.getElementById("new-master-lng").value);
+  const idInput = document.getElementById("new-master-id");
+  const nameInput = document.getElementById("new-master-name");
+  const cityInput = document.getElementById("new-master-city");
+  const latInput = document.getElementById("new-master-lat");
+  const lngInput = document.getElementById("new-master-lng");
+
+  if (!idInput || !nameInput || !cityInput || !latInput || !lngInput) return;
+
+  const id = idInput.value.trim();
+  const name = nameInput.value.trim();
+  const city = cityInput.value.trim();
+  const lat = parseFloat(latInput.value);
+  const lng = parseFloat(lngInput.value);
 
   if (!id || !name || !city || isNaN(lat) || isNaN(lng)) {
     alert("Vui lòng điền đầy đủ và chính xác thông tin!");
@@ -160,6 +184,11 @@ function handleAddMasterNode(e) {
   }
 
   const key = `master_${id}`;
+  if (MASTER_NODES_DATA[key]) {
+    alert("⚠️ Mã Trạm ID này đã tồn tại! Vui lòng chọn ID khác.");
+    return;
+  }
+
   const childNodes = [`node_${id}_1`, `node_${id}_2`, `node_${id}_3`];
 
   MASTER_NODES_DATA[key] = {
@@ -175,6 +204,13 @@ function handleAddMasterNode(e) {
   renderAllMarkers();
   updateMasterSelectOptions();
   switchMasterNode(key);
+
+  // Xóa sạch ô nhập sau khi tạo thành công
+  idInput.value = "";
+  nameInput.value = "";
+  cityInput.value = "";
+  latInput.value = "";
+  lngInput.value = "";
 
   closeAddMasterModal();
   alert(`Đã thêm thành công Trạm Master: ${name}`);
