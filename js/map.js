@@ -27,6 +27,7 @@ let MASTER_NODES_DATA = { ...DEFAULT_MASTER_NODES };
 let currentMasterKey = "master_1";
 let map = null;
 let markers = {};
+let tempPickMarker = null; // Marker tạm thời khi click chọn trên bản đồ
 
 // KHÔI PHỤC MASTER NODE TỪ LOCAL STORAGE NẾU CÓ
 function loadSavedMasterNodes() {
@@ -83,18 +84,51 @@ function initLeafletMap() {
   };
   map = L.map("map").setView([currentData.lat, currentData.lng], 13);
 
-  // SỬ DỤNG GOOGLE MAPS HYBRID (ẢNH VỆ TINH + NHÃN ĐỊA DANH SIÊU SẮC NÉT)
+  // SỬ DỤNG GOOGLE MAPS HYBRID (ẢNH VỆ TINH SẮC NÉT)
   L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
     maxZoom: 20,
     subdomains: ["mt0", "mt1", "mt2", "mt3"],
     attribution: "Google Maps",
   }).addTo(map);
 
+  // BẮT SỰ KIỆN CLICK TRÊN BẢN ĐỒ ĐỂ LẤY TỌA ĐỘ
+  map.on("click", onMapClickSelectLocation);
+
   renderAllMarkers();
   updateMasterSelectOptions();
   switchMasterNode(currentMasterKey);
 
   refreshMapSize();
+}
+
+// SỰ KIỆN CLICK BẢN ĐỒ ĐỂ LẤY TỌA ĐỘ TỰ ĐỘNG
+function onMapClickSelectLocation(e) {
+  const modal = document.getElementById("add-master-modal");
+  const isModalOpen = modal && !modal.classList.contains("hidden");
+
+  const lat = parseFloat(e.latlng.lat.toFixed(6));
+  const lng = parseFloat(e.latlng.lng.toFixed(6));
+
+  // Tự động gán vào ô input nếu modal đang mở
+  const latInput = document.getElementById("new-master-lat");
+  const lngInput = document.getElementById("new-master-lng");
+  if (latInput && lngInput) {
+    latInput.value = lat;
+    lngInput.value = lng;
+  }
+
+  // Đặt ghim tạm thời màu đỏ tại điểm click
+  if (tempPickMarker) {
+    map.removeLayer(tempPickMarker);
+  }
+  tempPickMarker = L.marker([lat, lng])
+    .addTo(map)
+    .bindPopup(`<b>📍 Vị trí đã chọn:</b><br>Vĩ độ: ${lat}<br>Kinh độ: ${lng}`)
+    .openPopup();
+
+  if (!isModalOpen) {
+    openAddMasterModal();
+  }
 }
 
 // VẼ LẠI TOÀN BỘ GHIM TRÊN BẢN ĐỒ
@@ -108,7 +142,8 @@ function renderAllMarkers() {
     const marker = L.marker([item.lat, item.lng]).addTo(map);
     marker.bindPopup(`<b>${item.name}</b><br>Khu vực: ${item.location}`);
 
-    marker.on("click", () => {
+    marker.on("click", (evt) => {
+      L.DomEvent.stopPropagation(evt);
       const selectEl = document.getElementById("master-select");
       if (selectEl) selectEl.value = key;
       switchMasterNode(key);
@@ -159,72 +194,99 @@ function switchMasterNode(masterKey) {
   if (typeof fetchSensorData === "function") fetchSensorData();
 }
 
-// HÀM TÌM TỌA ĐỘ VĨ ĐỘ / KINH ĐỘ TỰ ĐỘNG TỪ ĐỊA CHỈ (ĐÃ SỬA LỖI DNS)
+// HÀM TÌM TỌA ĐỘ THÔNG MINH (HỖ TRỢ: ĐỊA CHỈ, TỌA ĐỘ VĨ/KINH, LINK GOOGLE MAPS)
 async function searchAddressCoordinates() {
   const addressInput = document.getElementById("new-master-address");
   if (!addressInput) return;
-  const address = addressInput.value.trim();
+  const inputStr = addressInput.value.trim();
 
-  if (!address) {
-    alert("⚠️ Vui lòng nhập địa chỉ nông trại cần tìm!");
+  if (!inputStr) {
+    alert("⚠️ Vui lòng nhập địa chỉ, tọa độ hoặc dán link Google Maps!");
     return;
   }
 
+  // 1. Kiểm tra nếu người dùng dán Tọa độ trực tiếp (VD: 13.9871, 108.1234)
+  const coordMatch = inputStr.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    applyFoundCoordinates(lat, lng, "Tọa độ từ chuỗi nhập");
+    return;
+  }
+
+  // 2. Kiểm tra nếu dán Link Google Maps (VD: https://www.google.com/maps/@13.987,108.123,15z)
+  const urlCoordMatch = inputStr.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (urlCoordMatch) {
+    const lat = parseFloat(urlCoordMatch[1]);
+    const lng = parseFloat(urlCoordMatch[2]);
+    applyFoundCoordinates(lat, lng, "Link Google Maps");
+    return;
+  }
+
+  // 3. Tra cứu bằng tên Địa danh (Open-Meteo & Photon API)
   try {
-    // 1. Thử tìm kiếm với Open-Meteo Geocoding API (miễn phí, không chặn DNS tại VN)
     let response = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(address)}&count=1&language=vi&format=json`,
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputStr)}&count=1&language=vi&format=json`,
     );
     let data = await response.json();
 
     if (data && data.results && data.results.length > 0) {
-      const location = data.results[0];
-      const lat = location.latitude;
-      const lon = location.longitude;
-
-      document.getElementById("new-master-lat").value = lat;
-      document.getElementById("new-master-lng").value = lon;
-
-      const cityInput = document.getElementById("new-master-city");
-      if (cityInput && !cityInput.value.trim()) {
-        cityInput.value = location.admin1 || location.name || address;
-      }
-
-      alert(`📍 Đã tìm thấy tọa độ:\nVĩ độ: ${lat}\nKinh độ: ${lon}`);
+      const loc = data.results[0];
+      applyFoundCoordinates(
+        loc.latitude,
+        loc.longitude,
+        loc.admin1 || loc.name,
+      );
       return;
     }
 
-    // 2. Dự phòng: Thử tìm kiếm với Photon API nếu Open-Meteo không có kết quả
+    // Dự phòng Photon API
     response = await fetch(
-      `https://photon.komoot.io/api/?q=${encodeURIComponent(address)}&limit=1`,
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(inputStr)}&limit=1`,
     );
     data = await response.json();
 
     if (data && data.features && data.features.length > 0) {
-      const coords = data.features[0].geometry.coordinates; // [lng, lat]
+      const coords = data.features[0].geometry.coordinates;
       const props = data.features[0].properties;
-      const lat = coords[1];
-      const lon = coords[0];
-
-      document.getElementById("new-master-lat").value = lat;
-      document.getElementById("new-master-lng").value = lon;
-
-      const cityInput = document.getElementById("new-master-city");
-      if (cityInput && !cityInput.value.trim()) {
-        cityInput.value = props.state || props.city || props.name || address;
-      }
-
-      alert(`📍 Đã tìm thấy tọa độ:\nVĩ độ: ${lat}\nKinh độ: ${lon}`);
+      applyFoundCoordinates(
+        coords[1],
+        coords[0],
+        props.state || props.city || props.name,
+      );
       return;
     }
 
     alert(
-      "❌ Không tìm thấy tọa độ cho địa chỉ này. Vui lòng thử lại với tên Huyện / Tỉnh rõ ràng hơn (VD: Mang Yang, Gia Lai hoặc Pleiku)!",
+      "💡 Mẹo: Bạn có thể click trực tiếp vị trí nông trại trên bản đồ Vệ tinh phía sau, hoặc nhập tên Huyện/Tỉnh (VD: Mang Yang, Gia Lai)!",
     );
   } catch (err) {
-    console.error("Lỗi định vị địa chỉ:", err);
-    alert("❌ Lỗi kết nối dịch vụ định vị địa chỉ! Vui lòng thử lại.");
+    alert("❌ Lỗi tìm kiếm! Hãy click chọn trực tiếp trên bản đồ.");
   }
+}
+
+// HÀM HỖ TRỢ ĐIỀN TỌA ĐỘ VÀO FORM VÀ ĐỊNH VỊ BẢN ĐỒ
+function applyFoundCoordinates(lat, lng, cityName) {
+  document.getElementById("new-master-lat").value = lat;
+  document.getElementById("new-master-lng").value = lng;
+
+  const cityInput = document.getElementById("new-master-city");
+  if (cityInput && !cityInput.value.trim() && cityName) {
+    cityInput.value = cityName;
+  }
+
+  if (map) {
+    map.flyTo([lat, lng], 15);
+    if (tempPickMarker) map.removeLayer(tempPickMarker);
+    tempPickMarker = L.marker([lat, lng])
+      .addTo(map)
+      .bindPopup(
+        `<b>📍 Vị trí đã chọn:</b><br>Vĩ độ: ${lat}<br>Kinh độ: ${lng}`,
+      )
+      .openPopup();
+  }
+
+  alert(`📍 Đã xác định vị trí thành công:\nVĩ độ: ${lat}\nKinh độ: ${lng}`);
 }
 
 // THÊM TRẠM MASTER MỚI TỪ FORM MODAL
@@ -269,6 +331,11 @@ function handleAddMasterNode(e) {
 
   saveMasterNodesToStorage();
 
+  if (tempPickMarker && map) {
+    map.removeLayer(tempPickMarker);
+    tempPickMarker = null;
+  }
+
   renderAllMarkers();
   updateMasterSelectOptions();
   switchMasterNode(key);
@@ -287,11 +354,16 @@ function handleAddMasterNode(e) {
 function openAddMasterModal() {
   const modal = document.getElementById("add-master-modal");
   if (modal) modal.classList.remove("hidden");
+  refreshMapSize();
 }
 
 function closeAddMasterModal() {
   const modal = document.getElementById("add-master-modal");
   if (modal) modal.classList.add("hidden");
+  if (tempPickMarker && map) {
+    map.removeLayer(tempPickMarker);
+    tempPickMarker = null;
+  }
 }
 
 // XÓA TRẠM MASTER ĐANG CHỌN
@@ -328,7 +400,7 @@ function deleteCurrentMasterNode() {
   alert(`🗑️ Đã xóa thành công Trạm Master: ${currentData.name}`);
 }
 
-// QUẢN LÝ THÊM / XÓA SLAVE NODE (NODE CON) CHO MASTER ĐANG CHỌN
+// QUẢN LÝ THÊM / XÓA SLAVE NODE (NODE CON)
 function addSlaveNodeToCurrentMaster(slaveId) {
   const currentMaster = MASTER_NODES_DATA[currentMasterKey];
   if (!currentMaster) return false;
