@@ -53,7 +53,7 @@ function saveMasterNodesToStorage() {
   window.MASTER_NODES_DATA = MASTER_NODES_DATA;
 }
 
-// HÀM LÀM MỚI KÍCH THƯỚC BẢN ĐỒ (SỬA LỖI Ô XÁM TILE MAP)
+// HÀM LÀM MỚI KÍCH THƯỚC BẢN ĐỒ
 function refreshMapSize() {
   if (map) {
     setTimeout(() => {
@@ -81,16 +81,14 @@ function initLeafletMap() {
     lat: 10.3563,
     lng: 106.3631,
   };
-  map = L.map("map").setView([currentData.lat, currentData.lng], 8);
+  map = L.map("map").setView([currentData.lat, currentData.lng], 13);
 
-  // SỬ DỤNG ESRI WORLD DARK GRAY CANVAS (MIỄN PHÍ 100%, KHÔNG CẦN API KEY, DARK MODE ĐẸP)
-  L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-    {
-      maxZoom: 16,
-      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
-    },
-  ).addTo(map);
+  // SỬ DỤNG GOOGLE MAPS HYBRID (ẢNH VỆ TINH + NHÃN ĐỊA DANH SIÊU SẮC NÉT)
+  L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+    maxZoom: 20,
+    subdomains: ["mt0", "mt1", "mt2", "mt3"],
+    attribution: "Google Maps",
+  }).addTo(map);
 
   renderAllMarkers();
   updateMasterSelectOptions();
@@ -150,7 +148,7 @@ function switchMasterNode(masterKey) {
 
   if (map) {
     refreshMapSize();
-    map.flyTo([data.lat, data.lng], 10);
+    map.flyTo([data.lat, data.lng], 13);
     if (markers[masterKey]) markers[masterKey].openPopup();
   }
 
