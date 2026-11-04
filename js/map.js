@@ -41,7 +41,6 @@ function loadSavedMasterNodes() {
       console.error("Lỗi đọc dữ liệu Master Nodes từ bộ nhớ");
     }
   }
-  // Đồng bộ sang window để app.js truy cập chính xác
   window.MASTER_NODES_DATA = MASTER_NODES_DATA;
 }
 
@@ -74,7 +73,6 @@ function initLeafletMap() {
   }
   loadSavedMasterNodes();
 
-  // Đảm bảo currentMasterKey hợp lệ nếu trạm mặc định bị xóa
   if (!MASTER_NODES_DATA[currentMasterKey]) {
     currentMasterKey = Object.keys(MASTER_NODES_DATA)[0] || "master_1";
   }
@@ -85,16 +83,18 @@ function initLeafletMap() {
   };
   map = L.map("map").setView([currentData.lat, currentData.lng], 8);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  // THAY ĐỔI TILE SERVER SANG CARTODB DARK MODE (CỰC KỲ ỔN ĐỊNH VÀ ĐẸP)
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
     maxZoom: 19,
-    attribution: "© OpenStreetMap contributors",
+    subdomains: "abcd",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(map);
 
   renderAllMarkers();
   updateMasterSelectOptions();
   switchMasterNode(currentMasterKey);
 
-  // Ép bản đồ cập nhật lại khung hiển thị sau khi khởi tạo
   refreshMapSize();
 }
 
@@ -205,7 +205,6 @@ function handleAddMasterNode(e) {
   updateMasterSelectOptions();
   switchMasterNode(key);
 
-  // Xóa sạch ô nhập sau khi tạo thành công
   idInput.value = "";
   nameInput.value = "";
   cityInput.value = "";
