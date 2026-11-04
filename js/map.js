@@ -83,13 +83,14 @@ function initLeafletMap() {
   };
   map = L.map("map").setView([currentData.lat, currentData.lng], 8);
 
-  // THAY ĐỔI TILE SERVER SANG CARTODB DARK MODE (CỰC KỲ ỔN ĐỊNH VÀ ĐẸP)
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    maxZoom: 19,
-    subdomains: "abcd",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  }).addTo(map);
+  // SỬ DỤNG ESRI WORLD DARK GRAY CANVAS (MIỄN PHÍ 100%, KHÔNG CẦN API KEY, DARK MODE ĐẸP)
+  L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 16,
+      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
+    },
+  ).addTo(map);
 
   renderAllMarkers();
   updateMasterSelectOptions();
