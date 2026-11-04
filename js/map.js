@@ -40,7 +40,7 @@ function loadSavedMasterNodes() {
   }
 }
 
-// LƯU DỮ LIỆU MASTER NODE VÀ NỔI SLAVE NODE VÀO LOCAL STORAGE
+// LƯU DỮ LIỆU MASTER NODE VÀ SLAVE NODE VÀO LOCAL STORAGE
 function saveMasterNodesToStorage() {
   localStorage.setItem(
     "custom_master_nodes",
@@ -48,24 +48,43 @@ function saveMasterNodesToStorage() {
   );
 }
 
+// HÀM LÀM MỚI KÍCH THƯỚC BẢN ĐỒ (SỬA LỖI Ô XÁM TILE MAP)
+function refreshMapSize() {
+  if (map) {
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+  }
+}
+
 // KHỞI TẠO BẢN ĐỒ LEAFLET
 function initLeafletMap() {
-  if (map) return;
+  const mapElement = document.getElementById("map");
+  if (!mapElement) return;
+
+  if (map) {
+    refreshMapSize();
+    return;
+  }
   loadSavedMasterNodes();
 
   map = L.map("map").setView([10.3563, 106.3631], 8);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "© OpenStreetMap",
+    maxZoom: 19,
+    attribution: "© OpenStreetMap contributors",
   }).addTo(map);
 
   renderAllMarkers();
   updateMasterSelectOptions();
+
+  // Ép bản đồ cập nhật lại khung hiển thị sau khi khởi tạo
+  refreshMapSize();
 }
 
 // VẼ LẠI TOÀN BỘ GHIM TRÊN BẢN ĐỒ
 function renderAllMarkers() {
+  if (!map) return;
   Object.keys(markers).forEach((k) => map.removeLayer(markers[k]));
   markers = {};
 
@@ -113,6 +132,7 @@ function switchMasterNode(masterKey) {
   if (farmLocation) farmLocation.innerText = data.location;
 
   if (map) {
+    refreshMapSize();
     map.flyTo([data.lat, data.lng], 10);
     if (markers[masterKey]) markers[masterKey].openPopup();
   }
@@ -243,6 +263,7 @@ function deleteSlaveNodeFromMaster(slaveId) {
 window.MASTER_NODES_DATA = MASTER_NODES_DATA;
 window.getCurrentMasterKey = () => currentMasterKey;
 window.initLeafletMap = initLeafletMap;
+window.refreshMapSize = refreshMapSize;
 window.switchMasterNode = switchMasterNode;
 window.handleAddMasterNode = handleAddMasterNode;
 window.openAddMasterModal = openAddMasterModal;
