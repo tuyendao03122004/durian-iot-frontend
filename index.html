@@ -295,7 +295,7 @@
                   <span>Thêm Trạm Master</span>
                 </button>
 
-                <!-- NÚT XÓA TRẠM MASTER HIỆN TẠI (ĐÃ BỔ SUNG) -->
+                <!-- NÚT XÓA TRẠM MASTER HIỆN TẠI -->
                 <button
                   onclick="window.deleteCurrentMasterNode()"
                   class="bg-red-600/80 hover:bg-red-500 text-white text-xs px-2.5 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1 cursor-pointer"
@@ -415,6 +415,15 @@
                 >)</span
               >
             </h2>
+
+            <!-- NÚT THÊM NODE CON CHO MASTER HIỆN TẠI -->
+            <button
+              onclick="window.openAddSlaveModal()"
+              class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1 cursor-pointer"
+            >
+              <i class="fa-solid fa-plus"></i>
+              <span>Thêm Node Con</span>
+            </button>
           </div>
           <div
             id="child-nodes-container"
@@ -591,6 +600,65 @@
             Đóng
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: THÊM NODE CON (SLAVE NODE) -->
+    <div
+      id="add-slave-modal"
+      class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl"
+      >
+        <div
+          class="flex justify-between items-center border-b border-slate-700 pb-3"
+        >
+          <h3
+            class="text-base font-bold text-blue-400 flex items-center space-x-2"
+          >
+            <i class="fa-solid fa-microchip"></i>
+            <span>Thêm Node Con (Slave Node) Mới</span>
+          </h3>
+          <button
+            onclick="window.closeAddSlaveModal()"
+            class="text-slate-400 hover:text-white cursor-pointer"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <form
+          onsubmit="window.handleAddSlaveNode(event)"
+          class="space-y-3 text-xs"
+        >
+          <div>
+            <label class="text-slate-300 font-medium block mb-1"
+              >Mã Thiết Bị Node Con (ID)</label
+            >
+            <input
+              id="new-slave-id"
+              type="text"
+              placeholder="VD: node_1_4 hoặc node_04"
+              required
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div class="flex justify-end space-x-2 pt-2">
+            <button
+              type="button"
+              onclick="window.closeAddSlaveModal()"
+              class="px-4 py-2 text-slate-400 hover:text-white cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold cursor-pointer"
+            >
+              Lưu Node Con
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 

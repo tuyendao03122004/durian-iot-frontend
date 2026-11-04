@@ -8,7 +8,9 @@ function safeSetInnerText(elementId, textValue) {
   if (el) el.innerText = textValue;
 }
 
+// ==========================================
 // 1. AUTH & QUẢN LÝ PHIÊN ĐĂNG NHẬP
+// ==========================================
 function checkAuthSession() {
   const token = localStorage.getItem("access_token");
   const fullName =
@@ -88,7 +90,9 @@ function handleLogout() {
   checkAuthSession();
 }
 
+// ==========================================
 // 2. KHỞI TẠO DASHBOARD SYSTEM
+// ==========================================
 function initDashboardSystem() {
   initChart();
   if (typeof initLeafletMap === "function") initLeafletMap();
@@ -107,18 +111,41 @@ function updateRealtimeClock() {
   safeSetInnerText("realtime-clock", `${timeStr} - ${dateStr}`);
 }
 
-// 3. XỬ LÝ ĐIỀU KHIỂN BƠM CỦA CÁC NODE CON
+// ==========================================
+// 3. XỬ LÝ ĐIỀU KHIỂN BƠM & QUẢN LÝ NODE CON (SLAVE)
+// ==========================================
 function renderChildNodesUI(childNodesList) {
   const container = document.getElementById("child-nodes-container");
   if (!container) return;
   container.innerHTML = "";
+
+  // Nếu không truyền danh sách, tự động lấy danh sách node con từ Master Node đang chọn
+  if (!childNodesList) {
+    const currentKey = window.getCurrentMasterKey
+      ? window.getCurrentMasterKey()
+      : "master_1";
+    const masterData = window.MASTER_NODES_DATA
+      ? window.MASTER_NODES_DATA[currentKey]
+      : null;
+    childNodesList =
+      masterData && masterData.childNodes ? masterData.childNodes : [];
+  }
+
+  if (childNodesList.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full text-center py-6 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50">
+        Chưa có Node con nào thuộc Trạm Master này. Hãy nhấn nút "Thêm Node Con" để tạo mới.
+      </div>
+    `;
+    return;
+  }
 
   childNodesList.forEach((nodeId, idx) => {
     if (pumpStates[nodeId] === undefined) pumpStates[nodeId] = false;
     const isON = pumpStates[nodeId];
 
     const cardHTML = `
-      <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner">
+      <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 flex justify-between items-center shadow-inner relative group">
           <div>
               <p class="font-bold text-emerald-300 text-sm">Gốc Sầu Riêng - Node ${idx + 1}</p>
               <p class="text-[10px] text-slate-400 font-mono mt-0.5">Mã thiết bị: ${nodeId}</p>
@@ -126,9 +153,14 @@ function renderChildNodesUI(childNodesList) {
                   Trạng thái: ${isON ? "🟢 Đang BẬT" : "🔴 Đang TẮT"}
               </p>
           </div>
-          <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow">
-              ${isON ? "TẮT BƠM" : "BẬT BƠM"}
-          </button>
+          <div class="flex items-center space-x-2">
+            <button id="btn-${nodeId}" onclick="togglePump('${nodeId}')" class="${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow cursor-pointer">
+                ${isON ? "TẮT BƠM" : "BẬT BƠM"}
+            </button>
+            <button onclick="window.deleteSlaveNodeFromMaster('${nodeId}')" class="bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white p-2 rounded-lg text-xs transition cursor-pointer" title="Xóa Node con này">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
       </div>
     `;
     container.innerHTML += cardHTML;
@@ -137,11 +169,19 @@ function renderChildNodesUI(childNodesList) {
 
 async function togglePump(nodeId) {
   const nextAction = pumpStates[nodeId] ? "OFF" : "ON";
+  const currentMasterKey = window.getCurrentMasterKey
+    ? window.getCurrentMasterKey()
+    : "master_1";
+
   try {
     const res = await fetch(`${API_BASE}/control/pump`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ node_id: nodeId, action: nextAction }),
+      body: JSON.stringify({
+        master_id: currentMasterKey,
+        node_id: nodeId,
+        action: nextAction,
+      }),
     });
     if (res.ok) {
       pumpStates[nodeId] = !pumpStates[nodeId];
@@ -150,7 +190,7 @@ async function togglePump(nodeId) {
       const status = document.getElementById(`status-${nodeId}`);
       if (btn) {
         btn.innerText = isON ? "TẮT BƠM" : "BẬT BƠM";
-        btn.className = `${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow`;
+        btn.className = `${isON ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"} text-white text-xs px-3.5 py-2 rounded-lg font-bold transition shadow cursor-pointer`;
       }
       if (status) {
         status.innerText = isON
@@ -164,7 +204,39 @@ async function togglePump(nodeId) {
   }
 }
 
+// Xử lý Modal Thêm Node Con (Slave Node)
+function openAddSlaveModal() {
+  const modal = document.getElementById("add-slave-modal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeAddSlaveModal() {
+  const modal = document.getElementById("add-slave-modal");
+  if (modal) modal.classList.add("hidden");
+  const input = document.getElementById("new-slave-id");
+  if (input) input.value = "";
+}
+
+function handleAddSlaveNode(event) {
+  if (event) event.preventDefault();
+  const slaveIdInput = document.getElementById("new-slave-id");
+  if (!slaveIdInput) return;
+  const slaveId = slaveIdInput.value.trim();
+
+  if (slaveId) {
+    if (typeof window.addSlaveNodeToCurrentMaster === "function") {
+      const success = window.addSlaveNodeToCurrentMaster(slaveId);
+      if (success) {
+        renderChildNodesUI();
+        closeAddSlaveModal();
+      }
+    }
+  }
+}
+
+// ==========================================
 // 4. LẤY DỮ LIỆU CẢM BIẾN & THỜI TIẾT
+// ==========================================
 async function fetchSensorData() {
   try {
     const res = await fetch(`${API_BASE}/sensors/latest?limit=15`);
@@ -208,7 +280,9 @@ async function fetchWeather(cityName = "Tien Giang") {
   }
 }
 
-// 5. DỰ BÁO THỜI TIẾT THỰC TẾ CHI TIẾT THEO NGÀY & GIỜ
+// ==========================================
+// 5. DỰ BÁO THỜI TIẾT 7 NGÀY & KHUNG GIỜ
+// ==========================================
 function getWeatherIconClass(iconCode) {
   if (!iconCode) return "fa-cloud-sun text-amber-400";
   if (iconCode.startsWith("01")) return "fa-sun text-amber-400";
@@ -320,7 +394,6 @@ async function openWeatherForecastModal() {
   }
 }
 
-// BỔ SUNG: HÀM ẨN/HIỆN THỜI TIẾT THEO GIỜ
 function toggleHourlyForecast(index) {
   const container = document.getElementById(`hourly-container-${index}`);
   const arrow = document.getElementById(`arrow-icon-${index}`);
@@ -337,7 +410,6 @@ function toggleHourlyForecast(index) {
   }
 }
 
-// BỔ SUNG: HÀM ĐÓNG MODAL DỰ BÁO THỜI TIẾT
 function closeWeatherForecastModal() {
   const modal = document.getElementById("weather-forecast-modal");
   if (modal) {
@@ -345,7 +417,9 @@ function closeWeatherForecastModal() {
   }
 }
 
+// ==========================================
 // 6. XUẤT EXCEL & CHATBOT AI
+// ==========================================
 function exportExcel() {
   window.open(`${API_BASE}/export/excel`, "_blank");
 }
@@ -388,7 +462,9 @@ async function sendChatMessage() {
   }
 }
 
+// ==========================================
 // 7. CẤU HÌNH BIỂU ĐỒ CHART.JS
+// ==========================================
 function initChart() {
   const canvas = document.getElementById("sensorChart");
   if (!canvas) return;
@@ -448,10 +524,16 @@ function updateChart(logs) {
   chart.update();
 }
 
+// ==========================================
 // GẮN CÁC HÀM XỬ LÝ VÀO PHẠM VI TOÀN CỤC (WINDOW)
+// ==========================================
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 window.togglePump = togglePump;
+window.renderChildNodesUI = renderChildNodesUI;
+window.openAddSlaveModal = openAddSlaveModal;
+window.closeAddSlaveModal = closeAddSlaveModal;
+window.handleAddSlaveNode = handleAddSlaveNode;
 window.exportExcel = exportExcel;
 window.toggleChatbox = toggleChatbox;
 window.sendChatMessage = sendChatMessage;
