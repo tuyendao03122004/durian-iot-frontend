@@ -1,4 +1,8 @@
 const API_BASE = "https://durian-iot-backend.onrender.com/api/v1";
+const SUPABASE_URL = "https://hlqvfbtqsuudxbglelmu.supabase.co/rest/v1";
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_XT7dINKtu55kmI4ZJgynqg_DWCKBaKS";
+
 let chart = null;
 let isSystemInitialized = false;
 let clockInterval = null;
@@ -389,7 +393,6 @@ async function fetchSensorData(limit = 10) {
     return;
   }
 
-  // Hiển thị ngay dữ liệu cache 10 lần gần nhất nếu đã từng tải trước đó
   if (
     nodeHistoryCache[requestedSlaveId] &&
     nodeHistoryCache[requestedSlaveId].length > 0
@@ -397,49 +400,60 @@ async function fetchSensorData(limit = 10) {
     applyNodeLogsToUI(requestedSlaveId, nodeHistoryCache[requestedSlaveId]);
   }
 
-  try {
-    const res = await fetch(
-      `${API_BASE}/sensors/latest?node_id=${encodeURIComponent(requestedSlaveId)}&master_id=${encodeURIComponent(currentKey)}&limit=${limit}`,
-    );
-    const rawData = await res.json();
+  for (const nodeId of childNodes) {
+    if (disabledNodes.includes(nodeId)) continue;
 
-    // Chống xung đột nếu người dùng đã chuyển sang Node con khác trong lúc chờ API
-    const activeSlaveNow = window.getSelectedSlaveId
-      ? window.getSelectedSlaveId()
-      : null;
-    if (activeSlaveNow !== requestedSlaveId) return;
+    try {
+      const cleanId = String(nodeId).trim();
+      const url = `${SUPABASE_URL}/sensor_logs?node_id=eq.${encodeURIComponent(cleanId)}&order=created_at.desc&limit=${limit}`;
 
-    if (!Array.isArray(rawData) || rawData.length === 0) {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        console.error(`Lỗi Supabase HTTP ${res.status} cho ${cleanId}`);
+        continue;
+      }
+
+      const nodeLogs = await res.json();
+
+      if (!Array.isArray(nodeLogs) || nodeLogs.length === 0) {
+        safeSetInnerText(
+          `slave-count-${nodeId}`,
+          `Không tìm thấy mã "${cleanId}"`,
+        );
+        if (nodeId === requestedSlaveId) resetSensorDisplay();
+        continue;
+      }
+
+      nodeHistoryCache[nodeId] = nodeLogs;
+
+      const latest = nodeLogs[0];
       safeSetInnerText(
-        `slave-count-${requestedSlaveId}`,
-        "0 bản ghi trên Supabase",
+        `slave-soil-${nodeId}`,
+        `${formatMetric(latest.soil_moisture, 1)} %`,
       );
-      resetSensorDisplay();
-      return;
-    }
-
-    // LỌC NGHIÊM NGẶT THEO MÃ NODE_ID ĐỂ KHÔNG LẤY NHẦM DỮ LIỆU NODE KHÁC
-    const strictNodeLogs = rawData
-      .filter((item) => {
-        const recordNodeId = item.node_id || item.slave_id || item.device_id;
-        return String(recordNodeId).trim() === String(requestedSlaveId).trim();
-      })
-      .slice(0, limit);
-
-    if (strictNodeLogs.length === 0) {
       safeSetInnerText(
-        `slave-count-${requestedSlaveId}`,
-        `Không tìm thấy mã "${requestedSlaveId}"`,
+        `slave-temp-${nodeId}`,
+        `${formatMetric(latest.temperature, 1)} °C`,
       );
-      resetSensorDisplay();
-      return;
-    }
+      safeSetInnerText(
+        `slave-count-${nodeId}`,
+        `${nodeLogs.length} bản ghi gần nhất`,
+      );
 
-    // Lưu vào bộ nhớ đệm 10 bản ghi gần nhất của riêng Node con này
-    nodeHistoryCache[requestedSlaveId] = strictNodeLogs;
-    applyNodeLogsToUI(requestedSlaveId, strictNodeLogs);
-  } catch (err) {
-    console.error("Lỗi đọc dữ liệu từ Supabase:", err);
+      if (nodeId === requestedSlaveId) {
+        applyNodeLogsToUI(nodeId, nodeLogs);
+      }
+    } catch (err) {
+      console.error(`Lỗi đọc dữ liệu Supabase cho ${nodeId}:`, err);
+    }
   }
 }
 
