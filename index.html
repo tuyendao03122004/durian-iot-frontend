@@ -209,7 +209,7 @@
             <div>
               <p class="text-[11px] text-slate-400 font-medium">Nhiệt Độ Khí</p>
               <p id="card-temp" class="text-xl font-bold text-amber-400 mt-1">
-                27.5 °C
+                -- °C
               </p>
             </div>
             <i
@@ -225,7 +225,7 @@
                 id="card-humidity"
                 class="text-xl font-bold text-blue-400 mt-1"
               >
-                77 %
+                -- %
               </p>
             </div>
             <i class="fa-solid fa-droplet text-blue-500/40 text-2xl"></i>
@@ -234,11 +234,9 @@
             class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-emerald-500 shadow"
           >
             <div>
-              <p class="text-[11px] text-slate-400 font-medium">
-                Độ Ẩm Đất (TB)
-              </p>
+              <p class="text-[11px] text-slate-400 font-medium">Độ Ẩm Đất</p>
               <p id="card-soil" class="text-xl font-bold text-emerald-400 mt-1">
-                65 %
+                -- %
               </p>
             </div>
             <i class="fa-solid fa-plant-wilt text-emerald-500/40 text-2xl"></i>
@@ -249,7 +247,7 @@
             <div>
               <p class="text-[11px] text-slate-400 font-medium">Ánh Sáng</p>
               <p id="card-light" class="text-xl font-bold text-yellow-300 mt-1">
-                14500 Lux
+                -- Lux
               </p>
             </div>
             <i class="fa-solid fa-sun text-yellow-400/40 text-2xl"></i>
@@ -258,12 +256,12 @@
             class="glass p-4 rounded-xl flex items-center justify-between border-l-4 border-purple-500 shadow"
           >
             <div>
-              <p class="text-[11px] text-slate-400 font-medium">Pin Master</p>
+              <p class="text-[11px] text-slate-400 font-medium">Pin Node</p>
               <p
                 id="card-battery"
                 class="text-xl font-bold text-purple-300 mt-1"
               >
-                94 %
+                -- %
               </p>
             </div>
             <i
@@ -313,7 +311,10 @@
                 ></select>
               </div>
             </div>
-            <div id="map"></div>
+            <div
+              id="map"
+              class="w-full h-[360px] rounded-xl z-10 border border-slate-700/70"
+            ></div>
             <p class="text-[11px] text-slate-400 italic">
               📍 Click vào ghim (Marker) trên bản đồ để xem dữ liệu cảm biến của
               Trạm Master đó.
@@ -400,18 +401,18 @@
           </div>
         </div>
 
-        <!-- BẢNG ĐIỀU KHIỂN NODE PUMP WI-FI VÀ NODE CON -->
+        <!-- BẢNG QUẢN LÝ CÁC NODE CON -->
         <div class="glass p-5 rounded-2xl space-y-4 border border-slate-700/60">
           <div class="flex justify-between items-center flex-wrap gap-2">
             <h2
               class="text-base font-bold text-slate-200 flex items-center space-x-2"
             >
-              <i class="fa-solid fa-faucet-drip text-blue-400"></i>
+              <i class="fa-solid fa-microchip text-emerald-400"></i>
               <span
-                >Quản Lý Node Pump Wi-Fi & Node Con (<span
+                >Quản Lý Các Node Con (<span
                   id="current-master-label"
                   class="text-emerald-400"
-                  >Master 01</span
+                  >Master 01 - Tiền Giang</span
                 >)</span
               >
             </h2>
@@ -437,7 +438,7 @@
             class="text-base font-bold text-slate-200 flex items-center space-x-2"
           >
             <i class="fa-solid fa-chart-line text-emerald-400"></i>
-            <span>Biểu Đồ Xu Hướng Cảm Biến Của Trạm Đang Chọn</span>
+            <span>Biểu Đồ Xu Hướng Cảm Biến Của Node Đang Chọn</span>
           </h2>
           <div class="h-72 w-full">
             <canvas id="sensorChart"></canvas>
@@ -448,7 +449,6 @@
 
     <!-- 3. CHATBOT AI TƯ VẤN NÔNG NGHIỆP (FLOATING WIDGET) -->
     <div class="fixed bottom-6 right-6 z-50">
-      <!-- NÚT BẬT/TẮT CHATBOX -->
       <button
         onclick="toggleChatbox()"
         class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white p-3.5 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 cursor-pointer border border-emerald-400/40 group"
@@ -462,12 +462,10 @@
         </span>
       </button>
 
-      <!-- CỬA SỔ CHATBOT -->
       <div
         id="chatbox-window"
         class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-800/95 border border-slate-700/90 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[480px] transition-all duration-300"
       >
-        <!-- HEADER CHATBOX -->
         <div
           class="bg-slate-900/90 px-4 py-3 border-b border-slate-700/80 flex justify-between items-center"
         >
@@ -490,7 +488,6 @@
           </button>
         </div>
 
-        <!-- NỘI DUNG TIN NHẮN -->
         <div
           id="chat-messages"
           class="flex-1 p-4 space-y-3 overflow-y-auto text-xs"
@@ -503,7 +500,6 @@
           </div>
         </div>
 
-        <!-- Ô NHẬP TIN NHẮN -->
         <div
           class="p-3 bg-slate-900/90 border-t border-slate-700/80 flex space-x-2"
         >
@@ -549,7 +545,6 @@
           </button>
         </div>
 
-        <!-- HƯỚNG DẪN MẸO CHỌN BẢN ĐỒ -->
         <div
           class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-[11px] text-amber-300 flex items-center space-x-2"
         >
@@ -586,7 +581,6 @@
             />
           </div>
 
-          <!-- Ô NHẬP ĐỊA CHỈ / TỌA ĐỘ / LINK GOOGLE MAPS -->
           <div>
             <label class="text-slate-300 font-medium block mb-1"
               >🔍 Nhập Địa chỉ, Tọa độ hoặc Link Google Maps</label
@@ -676,7 +670,6 @@
       <div
         class="bg-slate-800 border border-slate-700 rounded-3xl p-6 w-full max-w-3xl md:max-w-4xl space-y-4 shadow-2xl max-h-[90vh] flex flex-col"
       >
-        <!-- HEADER MODAL -->
         <div
           class="flex justify-between items-center border-b border-slate-700/80 pb-3.5 flex-shrink-0"
         >
@@ -699,13 +692,11 @@
           </button>
         </div>
 
-        <!-- DANH SÁCH DỰ BÁO 7 NGÀY -->
         <div
           id="forecast-7days-list"
           class="space-y-3 overflow-y-auto pr-1.5 flex-1"
         ></div>
 
-        <!-- FOOTER MODAL -->
         <div class="text-right pt-2 border-t border-slate-700/80 flex-shrink-0">
           <button
             onclick="window.closeWeatherForecastModal()"

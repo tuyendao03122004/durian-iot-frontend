@@ -1,5 +1,4 @@
 const API_BASE = "https://durian-iot-backend.onrender.com/api/v1";
-let pumpStates = {};
 let chart = null;
 let isSystemInitialized = false;
 
@@ -29,7 +28,6 @@ function checkAuthSession() {
       isSystemInitialized = true;
     }
 
-    // Ép bản đồ cập nhật lại kích thước sau khi bỏ class hidden
     setTimeout(() => {
       if (window.map) {
         window.map.invalidateSize();
@@ -99,16 +97,14 @@ function handleLogout() {
 // ==========================================
 function initDashboardSystem() {
   initChart();
-  if (typeof initLeafletMap === "function") initLeafletMap();
-  if (typeof switchMasterNode === "function") switchMasterNode("master_1");
+  if (typeof initLeafletMap === "function") {
+    initLeafletMap();
+  }
 
   setInterval(updateRealtimeClock, 1000);
   updateRealtimeClock();
 
   setInterval(fetchSensorData, 5000);
-
-  // Tự động kiểm tra logic bật/tắt máy bơm Wi-Fi mỗi 3 giây
-  setInterval(evaluateAutoPumpLogic, 3000);
 }
 
 function updateRealtimeClock() {
@@ -119,219 +115,123 @@ function updateRealtimeClock() {
 }
 
 // ==========================================
-// 3. XỬ LÝ ĐIỀU KHIỂN NODE PUMP WI-FI (2 NGƯỠNG MIN/MAX) & NODE CON (SLAVE)
+// 3. QUẢN LÝ DANH SÁCH NODE CON (SLAVE NODES)
 // ==========================================
-
-// Render giao diện Bảng Điều Khiển Node Pump Wi-Fi + Các Node con Slave
-function renderMasterPumpAndChildNodes(masterData) {
+function renderChildNodesUI(masterDataOrList) {
   const container = document.getElementById("child-nodes-container");
   if (!container) return;
   container.innerHTML = "";
 
-  if (!masterData) {
-    const currentKey = window.getCurrentMasterKey
-      ? window.getCurrentMasterKey()
-      : "master_1";
-    masterData = window.MASTER_NODES_DATA
-      ? window.MASTER_NODES_DATA[currentKey]
-      : null;
-  }
+  const currentKey = window.getCurrentMasterKey
+    ? window.getCurrentMasterKey()
+    : "master_1";
+  const masterData =
+    masterDataOrList && !Array.isArray(masterDataOrList)
+      ? masterDataOrList
+      : window.MASTER_NODES_DATA
+        ? window.MASTER_NODES_DATA[currentKey]
+        : null;
+
   if (!masterData) return;
 
-  const pump = masterData.pumpNode || {
-    id: `pump_wifi_default`,
-    name: "Node Pump (Wi-Fi Direct)",
-    status: false,
-    mode: "auto",
-    minThreshold: 50,
-    maxThreshold: 80,
-    connection: "Wi-Fi / MQTT",
-  };
+  const childNodesList = Array.isArray(masterDataOrList)
+    ? masterDataOrList
+    : masterData.childNodes || [];
+  const disabledList = masterData.disabledNodes || [];
+  const selectedSlaveId = window.getSelectedSlaveId
+    ? window.getSelectedSlaveId()
+    : masterData.selectedSlaveId;
 
-  const isAuto = pump.mode === "auto";
+  updateChartTitle(selectedSlaveId);
 
-  // A. CARD ĐIỀU KHIỂN NODE PUMP WI-FI
-  const pumpCard = document.createElement("div");
-  pumpCard.className =
-    "col-span-1 md:col-span-3 bg-slate-800/90 border-2 border-amber-500/50 rounded-2xl p-4 shadow-xl space-y-4";
-  pumpCard.innerHTML = `
-    <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-700/80 pb-3">
-      <div class="flex items-center space-x-2.5">
-        <span class="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl text-xl"><i class="fa-solid fa-wifi"></i></span>
-        <div>
-          <h3 class="font-bold text-sm text-slate-100 flex items-center space-x-2">
-            <span>${pump.name} (${pump.id})</span>
-            <span class="text-[10px] px-2 py-0.5 rounded-full ${pump.status ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-slate-700 text-slate-400"} font-mono">
-              ${pump.status ? "🟢 BƠM ĐANG BẬT" : "🔴 BƠM ĐÃ TẮT"}
-            </span>
-          </h3>
-          <p class="text-[11px] text-slate-400">Kết nối: <span class="text-blue-400 font-semibold">${pump.connection || "Wi-Fi / MQTT"}</span> | Trực thuộc: <b class="text-emerald-400">${masterData.name}</b></p>
-        </div>
-      </div>
-
-      <!-- CÔNG TẮC AUTO / MANUAL -->
-      <div class="flex bg-slate-900/90 p-1 rounded-xl border border-slate-700 text-xs font-semibold">
-        <button onclick="window.setMasterPumpMode('auto')" class="px-3 py-1.5 rounded-lg transition ${isAuto ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"} flex items-center space-x-1 cursor-pointer">
-          <i class="fa-solid fa-robot"></i>
-          <span>Tự Động</span>
-        </button>
-        <button onclick="window.setMasterPumpMode('manual')" class="px-3 py-1.5 rounded-lg transition ${!isAuto ? "bg-amber-600 text-white shadow" : "text-slate-400 hover:text-white"} flex items-center space-x-1 cursor-pointer">
-          <i class="fa-solid fa-hand"></i>
-          <span>Thủ Công</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-      <!-- CÀI ĐẶT 2 NGƯỠNG ĐỘ ẨM MIN/MAX -->
-      <div class="bg-slate-900/60 p-3.5 rounded-xl border border-slate-700/60 space-y-3">
-        <div class="space-y-1">
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-slate-300 font-medium">💧 Ngưỡng BẬT BƠM (Độ ẩm &lt;):</span>
-            <span class="font-bold text-amber-400 font-mono text-xs">${pump.minThreshold}%</span>
-          </div>
-          <input type="range" min="20" max="70" value="${pump.minThreshold}" onchange="window.updateMasterPumpMinThreshold(this.value)" oninput="this.previousElementSibling.querySelector('.text-amber-400').innerText = this.value + '%'" class="w-full accent-amber-500 cursor-pointer">
-        </div>
-
-        <div class="space-y-1">
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-slate-300 font-medium">🌱 Ngưỡng TẮT BƠM (Độ ẩm &gt;):</span>
-            <span class="font-bold text-emerald-400 font-mono text-xs">${pump.maxThreshold}%</span>
-          </div>
-          <input type="range" min="60" max="95" value="${pump.maxThreshold}" onchange="window.updateMasterPumpMaxThreshold(this.value)" oninput="this.previousElementSibling.querySelector('.text-emerald-400').innerText = this.value + '%'" class="w-full accent-emerald-500 cursor-pointer">
-        </div>
-      </div>
-
-      <!-- ĐIỀU KHIỂN BƠM THỦ CÔNG QUA WI-FI -->
-      <div class="flex flex-col space-y-2">
-        <span class="text-[11px] text-slate-400">Điều khiển trực tiếp qua Wi-Fi:</span>
-        <div class="flex space-x-2">
-          <button onclick="executePumpCommand('${window.getCurrentMasterKey ? window.getCurrentMasterKey() : "master_1"}', '${pump.id}', 'ON')" ${isAuto ? 'disabled title="Vô hiệu hóa khi ở chế độ Tự Động"' : ""} class="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition ${pump.status ? "bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-400" : "bg-slate-700 text-slate-300 hover:bg-emerald-600 hover:text-white"} ${isAuto ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} flex items-center justify-center space-x-1.5">
-            <i class="fa-solid fa-power-off"></i>
-            <span>BẬT BƠM</span>
-          </button>
-          <button onclick="executePumpCommand('${window.getCurrentMasterKey ? window.getCurrentMasterKey() : "master_1"}', '${pump.id}', 'OFF')" ${isAuto ? 'disabled title="Vô hiệu hóa khi ở chế độ Tự Động"' : ""} class="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition ${!pump.status ? "bg-red-600 text-white shadow-lg ring-2 ring-red-400" : "bg-slate-700 text-slate-300 hover:bg-red-600 hover:text-white"} ${isAuto ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} flex items-center justify-center space-x-1.5">
-            <i class="fa-solid fa-ban"></i>
-            <span>TẮT BƠM</span>
-          </button>
-        </div>
-        <p class="text-[10px] text-slate-400 italic">Lưu ý: Nút Bật/Tắt thủ công chỉ có hiệu lực khi chuyển sang chế độ <b>Thủ Công</b>.</p>
-      </div>
-    </div>
-  `;
-  container.appendChild(pumpCard);
-
-  // B. DANH SÁCH NODE CON SLAVE (TRUYỀN LORA)
-  const childNodesList = masterData.childNodes || [];
   if (childNodesList.length === 0) {
     const emptyCard = document.createElement("div");
     emptyCard.className =
-      "col-span-1 md:col-span-3 text-center py-4 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50";
+      "col-span-1 md:col-span-3 text-center py-6 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50";
     emptyCard.innerText =
-      "Chưa có Node con cảm biến nào thuộc Trạm Master này. Nhấn 'Thêm Node Con' để tạo mới.";
+      "Chưa có Node con cảm biến nào thuộc Trạm Master này. Hãy nhấn nút 'Thêm Node Con' để tạo mới.";
     container.appendChild(emptyCard);
     return;
   }
 
   childNodesList.forEach((nodeId, idx) => {
+    const isSelected = nodeId === selectedSlaveId;
+    const isDisabled = disabledList.includes(nodeId);
+
     const card = document.createElement("div");
-    card.className =
-      "bg-slate-800/70 border border-slate-700 p-3.5 rounded-xl space-y-2 relative group hover:border-emerald-500/50 transition";
+    card.onclick = () => window.selectSlaveNode(nodeId);
+    card.className = `p-3.5 rounded-xl space-y-2.5 relative cursor-pointer transition border ${
+      isDisabled
+        ? "bg-slate-900/50 border-slate-700/50 opacity-60"
+        : isSelected
+          ? "bg-emerald-950/40 border-emerald-400 ring-1 ring-emerald-400/60 shadow-lg"
+          : "bg-slate-800/70 border-slate-700 hover:border-emerald-500/50"
+    }`;
+
     card.innerHTML = `
-      <div class="flex justify-between items-center">
-        <span class="font-bold text-xs text-emerald-400 flex items-center space-x-1">
+      <div class="flex justify-between items-start gap-2">
+        <span class="font-bold text-xs ${isDisabled ? "text-slate-400 line-through" : "text-emerald-400"} flex items-center space-x-1.5 pt-0.5">
           <i class="fa-solid fa-microchip"></i>
           <span>Gốc Sầu Riêng - Node ${idx + 1} (${nodeId})</span>
         </span>
-        <button onclick="window.deleteSlaveNodeFromMaster('${nodeId}')" class="text-slate-500 hover:text-red-400 text-xs transition cursor-pointer" title="Xóa Node con">
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
+
+        <div class="flex items-center space-x-1.5 flex-shrink-0">
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+            isSelected
+              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              : "bg-slate-700/70 text-slate-400"
+          }">
+            ${isSelected ? "📊 Đang xem" : "Chọn xem"}
+          </span>
+
+          <button
+            onclick="event.stopPropagation(); window.toggleSlaveNodeActive('${nodeId}')"
+            class="px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer border ${
+              isDisabled
+                ? "bg-slate-800 text-slate-300 border-slate-600 hover:bg-emerald-600/20 hover:text-emerald-300"
+                : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-amber-500/20 hover:text-amber-300"
+            }"
+            title="${isDisabled ? "Bấm để kích hoạt lại Node này" : "Bấm để tạm ngưng Node không dùng"}"
+          >
+            ${isDisabled ? "⚪ Không dùng" : "🟢 Đang dùng"}
+          </button>
+
+          <button
+            onclick="event.stopPropagation(); window.deleteSlaveNodeFromMaster('${nodeId}')"
+            class="bg-red-500/15 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 px-2 py-1 rounded-lg text-[10px] font-semibold transition cursor-pointer"
+            title="Xóa Node con này"
+          >
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
       </div>
+
       <div class="text-[11px] text-slate-300 space-y-1">
-        <div class="flex justify-between"><span>Độ ẩm đất (LoRa):</span> <b class="text-emerald-300">${55 + idx * 4} %</b></div>
-        <div class="flex justify-between"><span>Nhiệt độ lá:</span> <b class="text-amber-300">${28 + idx} °C</b></div>
+        <div class="flex justify-between">
+          <span>Độ ẩm đất (LoRa):</span>
+          <b id="slave-soil-${nodeId}" class="${isDisabled ? "text-slate-500" : "text-emerald-300"}">${isDisabled ? "Tạm ngưng" : "-- %"}</b>
+        </div>
+        <div class="flex justify-between">
+          <span>Nhiệt độ lá:</span>
+          <b id="slave-temp-${nodeId}" class="${isDisabled ? "text-slate-500" : "text-amber-300"}">${isDisabled ? "Tạm ngưng" : "-- °C"}</b>
+        </div>
       </div>
     `;
     container.appendChild(card);
   });
 }
 
-// Wrapper duy trì tương thích với giao diện cũ
-function renderChildNodesUI(childNodesList) {
-  const currentKey = window.getCurrentMasterKey
-    ? window.getCurrentMasterKey()
-    : "master_1";
-  const masterData = window.MASTER_NODES_DATA
-    ? window.MASTER_NODES_DATA[currentKey]
-    : null;
-
-  if (masterData) {
-    if (childNodesList) masterData.childNodes = childNodesList;
-    renderMasterPumpAndChildNodes(masterData);
+function updateChartTitle(selectedSlaveId) {
+  const canvas = document.getElementById("sensorChart");
+  if (!canvas) return;
+  const heading = canvas.closest(".glass")?.querySelector("h2 span");
+  if (heading) {
+    heading.innerText = selectedSlaveId
+      ? `Biểu Đồ Xu Hướng Cảm Biến - Node Con (${selectedSlaveId})`
+      : "Biểu Đồ Xu Hướng Cảm Biến (Chưa có Node con)";
   }
 }
 
-// Thực thi lệnh điều khiển Bơm gửi qua Backend (Wi-Fi/MQTT)
-async function executePumpCommand(masterId, pumpId, action) {
-  const currentKey =
-    masterId ||
-    (window.getCurrentMasterKey ? window.getCurrentMasterKey() : "master_1");
-  const master = window.MASTER_NODES_DATA
-    ? window.MASTER_NODES_DATA[currentKey]
-    : null;
-
-  try {
-    const res = await fetch(`${API_BASE}/control/pump`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        master_id: currentKey,
-        node_id: pumpId,
-        action: action,
-      }),
-    });
-  } catch (err) {
-    console.error("Lỗi gửi lệnh bơm Wi-Fi tới Backend:", err);
-  }
-
-  if (master && master.pumpNode) {
-    master.pumpNode.status = action === "ON";
-    if (window.saveMasterNodesToStorage) window.saveMasterNodesToStorage();
-    renderMasterPumpAndChildNodes(master);
-  }
-}
-
-// Độc lập đánh giá độ ẩm đất tự động theo 2 ngưỡng Min/Max
-async function evaluateAutoPumpLogic() {
-  const currentKey = window.getCurrentMasterKey
-    ? window.getCurrentMasterKey()
-    : "master_1";
-  const master = window.MASTER_NODES_DATA
-    ? window.MASTER_NODES_DATA[currentKey]
-    : null;
-  if (!master || !master.pumpNode) return;
-
-  const pump = master.pumpNode;
-  const soilCard = document.getElementById("card-soil");
-  if (!soilCard) return;
-
-  const soilText = soilCard.innerText.replace("%", "").trim();
-  const currentSoilMoisture = parseFloat(soilText);
-  if (isNaN(currentSoilMoisture)) return;
-
-  if (pump.mode === "auto") {
-    // Nếu Độ ẩm đất < Ngưỡng Bật (Min %) -> Tự động Bật Bơm qua Wi-Fi
-    if (currentSoilMoisture < pump.minThreshold && !pump.status) {
-      await executePumpCommand(currentKey, pump.id, "ON");
-    }
-    // Nếu Độ ẩm đất > Ngưỡng Tắt (Max %) -> Tự động Tắt Bơm qua Wi-Fi
-    else if (currentSoilMoisture > pump.maxThreshold && pump.status) {
-      await executePumpCommand(currentKey, pump.id, "OFF");
-    }
-  }
-}
-
-// Xử lý Modal Thêm Node Con (Slave Node)
 function openAddSlaveModal() {
   const modal = document.getElementById("add-slave-modal");
   if (modal) modal.classList.remove("hidden");
@@ -355,6 +255,7 @@ function handleAddSlaveNode(event) {
       const success = window.addSlaveNodeToCurrentMaster(slaveId);
       if (success) {
         renderChildNodesUI();
+        fetchSensorData();
         closeAddSlaveModal();
       }
     }
@@ -362,21 +263,94 @@ function handleAddSlaveNode(event) {
 }
 
 // ==========================================
-// 4. LẤY DỮ LIỆU CẢM BIẾN & THỜI TIẾT
+// 4. LẤY DỮ LIỆU CẢM BIẾN THEO TỪNG NODE CON & THỜI TIẾT
 // ==========================================
+function resetSensorDisplay() {
+  safeSetInnerText("card-temp", "-- °C");
+  safeSetInnerText("card-humidity", "-- %");
+  safeSetInnerText("card-soil", "-- %");
+  safeSetInnerText("card-light", "-- Lux");
+  safeSetInnerText("card-battery", "-- %");
+
+  if (chart) {
+    chart.data.labels = [];
+    chart.data.datasets[0].data = [];
+    chart.data.datasets[1].data = [];
+    chart.update();
+  }
+}
+
+function formatMetric(val, decimals = 1) {
+  if (val === undefined || val === null || isNaN(Number(val))) return "--";
+  return Number(Number(val).toFixed(decimals));
+}
+
 async function fetchSensorData() {
+  const currentKey = window.getCurrentMasterKey
+    ? window.getCurrentMasterKey()
+    : "master_1";
+  const masterData = window.MASTER_NODES_DATA
+    ? window.MASTER_NODES_DATA[currentKey]
+    : null;
+  const childNodes = masterData?.childNodes || [];
+  const disabledNodes = masterData?.disabledNodes || [];
+  const selectedSlaveId = window.getSelectedSlaveId
+    ? window.getSelectedSlaveId()
+    : null;
+
+  if (
+    childNodes.length === 0 ||
+    !selectedSlaveId ||
+    disabledNodes.includes(selectedSlaveId)
+  ) {
+    resetSensorDisplay();
+    return;
+  }
+
   try {
-    const res = await fetch(`${API_BASE}/sensors/latest?limit=15`);
-    const data = await res.json();
-    if (data && data.length > 0) {
-      const latest = data[0];
-      safeSetInnerText("card-temp", `${latest.temperature ?? "--"} °C`);
-      safeSetInnerText("card-humidity", `${latest.humidity ?? "--"} %`);
-      safeSetInnerText("card-soil", `${latest.soil_moisture ?? "--"} %`);
-      safeSetInnerText("card-light", `${latest.light_lux ?? "--"} Lux`);
-      safeSetInnerText("card-battery", `${latest.battery ?? "--"} %`);
-      updateChart(data);
+    const res = await fetch(
+      `${API_BASE}/sensors/latest?node_id=${encodeURIComponent(selectedSlaveId)}&master_id=${encodeURIComponent(currentKey)}&limit=15`,
+    );
+    const rawData = await res.json();
+
+    if (!Array.isArray(rawData) || rawData.length === 0) {
+      resetSensorDisplay();
+      return;
     }
+
+    const hasNodeField = rawData.some(
+      (item) => item.node_id !== undefined || item.slave_id !== undefined,
+    );
+    const nodeLogs = hasNodeField
+      ? rawData.filter(
+          (item) =>
+            item.node_id === selectedSlaveId ||
+            item.slave_id === selectedSlaveId,
+        )
+      : rawData;
+
+    if (nodeLogs.length === 0) {
+      resetSensorDisplay();
+      return;
+    }
+
+    const latest = nodeLogs[0];
+    const tempVal = formatMetric(latest.temperature, 1);
+    const humVal = formatMetric(latest.humidity, 1);
+    const soilVal = formatMetric(latest.soil_moisture, 1);
+    const lightVal = formatMetric(latest.light_lux, 0);
+    const batVal = formatMetric(latest.battery, 0);
+
+    safeSetInnerText("card-temp", `${tempVal} °C`);
+    safeSetInnerText("card-humidity", `${humVal} %`);
+    safeSetInnerText("card-soil", `${soilVal} %`);
+    safeSetInnerText("card-light", `${lightVal} Lux`);
+    safeSetInnerText("card-battery", `${batVal} %`);
+
+    safeSetInnerText(`slave-soil-${selectedSlaveId}`, `${soilVal} %`);
+    safeSetInnerText(`slave-temp-${selectedSlaveId}`, `${tempVal} °C`);
+
+    updateChart(nodeLogs);
   } catch (err) {
     console.error("Lỗi dữ liệu cảm biến:", err);
   }
@@ -485,7 +459,6 @@ async function openWeatherForecastModal() {
 
       container.innerHTML += `
         <div class="bg-slate-800/90 rounded-xl border border-slate-700/80 overflow-hidden shadow">
-            <!-- TIÊU ĐỀ NGÀY -->
             <div onclick="toggleHourlyForecast(${i})" class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-700/50 transition select-none">
                 <div class="flex items-center space-x-3">
                     <div class="text-2xl w-8 text-center"><i class="fa-solid ${iconClass}"></i></div>
@@ -503,7 +476,6 @@ async function openWeatherForecastModal() {
                 </div>
             </div>
 
-            <!-- CHI TIẾT THEO GIỜ -->
             <div id="hourly-container-${i}" class="hidden bg-slate-950/70 p-4 border-t border-slate-700/60">
                 <p class="text-xs font-bold text-emerald-400 mb-2.5 flex items-center space-x-1.5">
                     <i class="fa-regular fa-clock"></i>
@@ -539,9 +511,7 @@ function toggleHourlyForecast(index) {
 
 function closeWeatherForecastModal() {
   const modal = document.getElementById("weather-forecast-modal");
-  if (modal) {
-    modal.classList.add("hidden");
-  }
+  if (modal) modal.classList.add("hidden");
 }
 
 // ==========================================
@@ -646,19 +616,23 @@ function updateChart(logs) {
       minute: "2-digit",
     }),
   );
-  chart.data.datasets[0].data = reversed.map((l) => l.temperature);
-  chart.data.datasets[1].data = reversed.map((l) => l.soil_moisture);
+  chart.data.datasets[0].data = reversed.map((l) =>
+    formatMetric(l.temperature, 1),
+  );
+  chart.data.datasets[1].data = reversed.map((l) =>
+    formatMetric(l.soil_moisture, 1),
+  );
   chart.update();
 }
 
 // ==========================================
-// GẮN CÁC HÀM XỬ LÝ VÀO PHẠM VI TOÀN CỤC (WINDOW)
+// GẮN CÁC HÀM XỬ LÝ VÀ DỮ LIỆU VÀO PHẠM VI TOÀN CỤC (WINDOW)
 // ==========================================
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
-window.executePumpCommand = executePumpCommand;
-window.renderMasterPumpAndChildNodes = renderMasterPumpAndChildNodes;
+window.fetchSensorData = fetchSensorData;
 window.renderChildNodesUI = renderChildNodesUI;
+window.renderMasterPumpAndChildNodes = renderChildNodesUI;
 window.openAddSlaveModal = openAddSlaveModal;
 window.closeAddSlaveModal = closeAddSlaveModal;
 window.handleAddSlaveNode = handleAddSlaveNode;
