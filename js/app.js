@@ -1,6 +1,9 @@
 const API_BASE = "https://durian-iot-backend.onrender.com/api/v1";
 let chart = null;
 let isSystemInitialized = false;
+let clockInterval = null;
+let sensorInterval = null;
+let nodeHistoryCache = {}; // Lưu bộ nhớ đệm 10 bản ghi gần nhất theo từng node_id
 
 function safeSetInnerText(elementId, textValue) {
   const el = document.getElementById(elementId);
@@ -8,7 +11,7 @@ function safeSetInnerText(elementId, textValue) {
 }
 
 // ==========================================
-// 1. AUTH & QUẢN LÝ PHIÊN ĐĂNG NHẬP
+// 1. AUTH & QUẢN LÝ PHIÊN ĐĂNG NHẬP / ĐĂNG XUẤT
 // ==========================================
 function checkAuthSession() {
   const token = localStorage.getItem("access_token");
@@ -33,6 +36,20 @@ function checkAuthSession() {
         window.map.invalidateSize();
       }
     }, 300);
+  } else {
+    // ĐĂNG XUẤT NGAY LẬP TỨC: HIỆN MÀN HÌNH LOGIN, ẨN DASHBOARD & DỪNG INTERVAL
+    if (loginScreen) loginScreen.classList.remove("hidden");
+    if (dashboardScreen) dashboardScreen.classList.add("hidden");
+    isSystemInitialized = false;
+
+    if (clockInterval) {
+      clearInterval(clockInterval);
+      clockInterval = null;
+    }
+    if (sensorInterval) {
+      clearInterval(sensorInterval);
+      sensorInterval = null;
+    }
   }
 }
 
@@ -64,6 +81,8 @@ async function handleLogin() {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("username", data.username);
       localStorage.setItem("full_name", data.full_name || data.username);
+      uInputEl.value = "";
+      pInputEl.value = "";
       checkAuthSession();
     } else {
       if (errorEl) {
@@ -101,10 +120,12 @@ function initDashboardSystem() {
     initLeafletMap();
   }
 
-  setInterval(updateRealtimeClock, 1000);
+  if (clockInterval) clearInterval(clockInterval);
+  clockInterval = setInterval(updateRealtimeClock, 1000);
   updateRealtimeClock();
 
-  setInterval(fetchSensorData, 5000);
+  if (sensorInterval) clearInterval(sensorInterval);
+  sensorInterval = setInterval(() => fetchSensorData(10), 5000);
 }
 
 function updateRealtimeClock() {
@@ -124,7 +145,19 @@ function renderChildNodesUI(masterDataOrList) {
 
   const currentKey = window.getCurrentMasterKey
     ? window.getCurrentMasterKey()
-    : "master_1";
+    : null;
+
+  if (!currentKey) {
+    updateChartTitle(null);
+    const emptyMasterCard = document.createElement("div");
+    emptyMasterCard.className =
+      "col-span-1 md:col-span-3 text-center py-6 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50";
+    emptyMasterCard.innerText =
+      "Bạn chưa tạo Trạm Master nào. Hãy nhấn '+ Thêm Trạm Master' hoặc click lên bản đồ để tạo trạm đầu tiên.";
+    container.appendChild(emptyMasterCard);
+    return;
+  }
+
   const masterData =
     masterDataOrList && !Array.isArray(masterDataOrList)
       ? masterDataOrList
@@ -149,7 +182,7 @@ function renderChildNodesUI(masterDataOrList) {
     emptyCard.className =
       "col-span-1 md:col-span-3 text-center py-6 text-slate-400 text-xs italic bg-slate-800/40 rounded-xl border border-slate-700/50";
     emptyCard.innerText =
-      "Chưa có Node con cảm biến nào thuộc Trạm Master này. Hãy nhấn nút 'Thêm Node Con' để tạo mới.";
+      "Chưa có Node con nào thuộc Trạm Master này. Hãy nhấn nút '+ Thêm Node Con' và nhập đúng mã node_id trên Supabase.";
     container.appendChild(emptyCard);
     return;
   }
@@ -157,6 +190,19 @@ function renderChildNodesUI(masterDataOrList) {
   childNodesList.forEach((nodeId, idx) => {
     const isSelected = nodeId === selectedSlaveId;
     const isDisabled = disabledList.includes(nodeId);
+    const cachedLogs = nodeHistoryCache[nodeId] || [];
+    const latestCached = cachedLogs.length > 0 ? cachedLogs[0] : null;
+
+    const soilDisplay = isDisabled
+      ? "Tạm ngưng"
+      : latestCached
+        ? `${formatMetric(latestCached.soil_moisture, 1)} %`
+        : "-- %";
+    const tempDisplay = isDisabled
+      ? "Tạm ngưng"
+      : latestCached
+        ? `${formatMetric(latestCached.temperature, 1)} °C`
+        : "-- °C";
 
     const card = document.createElement("div");
     card.onclick = () => window.selectSlaveNode(nodeId);
@@ -172,7 +218,7 @@ function renderChildNodesUI(masterDataOrList) {
       <div class="flex justify-between items-start gap-2">
         <span class="font-bold text-xs ${isDisabled ? "text-slate-400 line-through" : "text-emerald-400"} flex items-center space-x-1.5 pt-0.5">
           <i class="fa-solid fa-microchip"></i>
-          <span>Gốc Sầu Riêng - Node ${idx + 1} (${nodeId})</span>
+          <span>Node ${idx + 1}: ${nodeId}</span>
         </span>
 
         <div class="flex items-center space-x-1.5 flex-shrink-0">
@@ -209,11 +255,15 @@ function renderChildNodesUI(masterDataOrList) {
       <div class="text-[11px] text-slate-300 space-y-1">
         <div class="flex justify-between">
           <span>Độ ẩm đất (LoRa):</span>
-          <b id="slave-soil-${nodeId}" class="${isDisabled ? "text-slate-500" : "text-emerald-300"}">${isDisabled ? "Tạm ngưng" : "-- %"}</b>
+          <b id="slave-soil-${nodeId}" class="${isDisabled ? "text-slate-500" : "text-emerald-300"}">${soilDisplay}</b>
         </div>
         <div class="flex justify-between">
-          <span>Nhiệt độ lá:</span>
-          <b id="slave-temp-${nodeId}" class="${isDisabled ? "text-slate-500" : "text-amber-300"}">${isDisabled ? "Tạm ngưng" : "-- °C"}</b>
+          <span>Nhiệt độ khí:</span>
+          <b id="slave-temp-${nodeId}" class="${isDisabled ? "text-slate-500" : "text-amber-300"}">${tempDisplay}</b>
+        </div>
+        <div class="flex justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-700/50">
+          <span>Lịch sử Supabase:</span>
+          <span id="slave-count-${nodeId}" class="font-mono text-slate-300">${cachedLogs.length > 0 ? `${cachedLogs.length} bản ghi gần nhất` : "Đang chờ đồng bộ..."}</span>
         </div>
       </div>
     `;
@@ -227,12 +277,19 @@ function updateChartTitle(selectedSlaveId) {
   const heading = canvas.closest(".glass")?.querySelector("h2 span");
   if (heading) {
     heading.innerText = selectedSlaveId
-      ? `Biểu Đồ Xu Hướng Cảm Biến - Node Con (${selectedSlaveId})`
-      : "Biểu Đồ Xu Hướng Cảm Biến (Chưa có Node con)";
+      ? `Biểu Đồ 10 Lần Đo Gần Nhất - Node (${selectedSlaveId})`
+      : "Biểu Đồ Xu Hướng Cảm Biến (Chưa chọn Node con)";
   }
 }
 
 function openAddSlaveModal() {
+  const currentKey = window.getCurrentMasterKey
+    ? window.getCurrentMasterKey()
+    : null;
+  if (!currentKey) {
+    alert("⚠️ Vui lòng thêm ít nhất 01 Trạm Master trước khi thêm Node con!");
+    return;
+  }
   const modal = document.getElementById("add-slave-modal");
   if (modal) modal.classList.remove("hidden");
 }
@@ -244,26 +301,25 @@ function closeAddSlaveModal() {
   if (input) input.value = "";
 }
 
-function handleAddSlaveNode(event) {
+async function handleAddSlaveNode(event) {
   if (event) event.preventDefault();
   const slaveIdInput = document.getElementById("new-slave-id");
   if (!slaveIdInput) return;
   const slaveId = slaveIdInput.value.trim();
 
-  if (slaveId) {
-    if (typeof window.addSlaveNodeToCurrentMaster === "function") {
-      const success = window.addSlaveNodeToCurrentMaster(slaveId);
-      if (success) {
-        renderChildNodesUI();
-        fetchSensorData();
-        closeAddSlaveModal();
-      }
+  if (slaveId && typeof window.addSlaveNodeToCurrentMaster === "function") {
+    const success = window.addSlaveNodeToCurrentMaster(slaveId);
+    if (success) {
+      closeAddSlaveModal();
+      renderChildNodesUI();
+      // Nạp ngay 10 bản ghi gần nhất từ Supabase cho Node con vừa tạo
+      await fetchSensorData(10);
     }
   }
 }
 
 // ==========================================
-// 4. LẤY DỮ LIỆU CẢM BIẾN THEO TỪNG NODE CON & THỜI TIẾT
+// 4. ĐỌC DỮ LIỆU TỪ SUPABASE THEO TỪNG NODE CON (CHỐNG LẤY NHẦM)
 // ==========================================
 function resetSensorDisplay() {
   safeSetInnerText("card-temp", "-- °C");
@@ -285,74 +341,105 @@ function formatMetric(val, decimals = 1) {
   return Number(Number(val).toFixed(decimals));
 }
 
-async function fetchSensorData() {
+function applyNodeLogsToUI(slaveId, nodeLogs) {
+  const latest = nodeLogs[0];
+  const tempVal = formatMetric(latest.temperature, 1);
+  const humVal = formatMetric(latest.humidity, 1);
+  const soilVal = formatMetric(latest.soil_moisture, 1);
+  const lightVal = formatMetric(latest.light_lux, 0);
+  const batVal = formatMetric(latest.battery, 0);
+
+  safeSetInnerText("card-temp", `${tempVal} °C`);
+  safeSetInnerText("card-humidity", `${humVal} %`);
+  safeSetInnerText("card-soil", `${soilVal} %`);
+  safeSetInnerText("card-light", `${lightVal} Lux`);
+  safeSetInnerText("card-battery", `${batVal} %`);
+
+  safeSetInnerText(`slave-soil-${slaveId}`, `${soilVal} %`);
+  safeSetInnerText(`slave-temp-${slaveId}`, `${tempVal} °C`);
+  safeSetInnerText(
+    `slave-count-${slaveId}`,
+    `${nodeLogs.length} bản ghi gần nhất`,
+  );
+
+  updateChart(nodeLogs);
+}
+
+async function fetchSensorData(limit = 10) {
   const currentKey = window.getCurrentMasterKey
     ? window.getCurrentMasterKey()
-    : "master_1";
-  const masterData = window.MASTER_NODES_DATA
-    ? window.MASTER_NODES_DATA[currentKey]
     : null;
+  const masterData =
+    currentKey && window.MASTER_NODES_DATA
+      ? window.MASTER_NODES_DATA[currentKey]
+      : null;
   const childNodes = masterData?.childNodes || [];
   const disabledNodes = masterData?.disabledNodes || [];
-  const selectedSlaveId = window.getSelectedSlaveId
+  const requestedSlaveId = window.getSelectedSlaveId
     ? window.getSelectedSlaveId()
     : null;
 
   if (
+    !currentKey ||
     childNodes.length === 0 ||
-    !selectedSlaveId ||
-    disabledNodes.includes(selectedSlaveId)
+    !requestedSlaveId ||
+    disabledNodes.includes(requestedSlaveId)
   ) {
     resetSensorDisplay();
     return;
   }
 
+  // Hiển thị ngay dữ liệu cache 10 lần gần nhất nếu đã từng tải trước đó
+  if (
+    nodeHistoryCache[requestedSlaveId] &&
+    nodeHistoryCache[requestedSlaveId].length > 0
+  ) {
+    applyNodeLogsToUI(requestedSlaveId, nodeHistoryCache[requestedSlaveId]);
+  }
+
   try {
     const res = await fetch(
-      `${API_BASE}/sensors/latest?node_id=${encodeURIComponent(selectedSlaveId)}&master_id=${encodeURIComponent(currentKey)}&limit=15`,
+      `${API_BASE}/sensors/latest?node_id=${encodeURIComponent(requestedSlaveId)}&master_id=${encodeURIComponent(currentKey)}&limit=${limit}`,
     );
     const rawData = await res.json();
 
+    // Chống xung đột nếu người dùng đã chuyển sang Node con khác trong lúc chờ API
+    const activeSlaveNow = window.getSelectedSlaveId
+      ? window.getSelectedSlaveId()
+      : null;
+    if (activeSlaveNow !== requestedSlaveId) return;
+
     if (!Array.isArray(rawData) || rawData.length === 0) {
+      safeSetInnerText(
+        `slave-count-${requestedSlaveId}`,
+        "0 bản ghi trên Supabase",
+      );
       resetSensorDisplay();
       return;
     }
 
-    const hasNodeField = rawData.some(
-      (item) => item.node_id !== undefined || item.slave_id !== undefined,
-    );
-    const nodeLogs = hasNodeField
-      ? rawData.filter(
-          (item) =>
-            item.node_id === selectedSlaveId ||
-            item.slave_id === selectedSlaveId,
-        )
-      : rawData;
+    // LỌC NGHIÊM NGẶT THEO MÃ NODE_ID ĐỂ KHÔNG LẤY NHẦM DỮ LIỆU NODE KHÁC
+    const strictNodeLogs = rawData
+      .filter((item) => {
+        const recordNodeId = item.node_id || item.slave_id || item.device_id;
+        return String(recordNodeId).trim() === String(requestedSlaveId).trim();
+      })
+      .slice(0, limit);
 
-    if (nodeLogs.length === 0) {
+    if (strictNodeLogs.length === 0) {
+      safeSetInnerText(
+        `slave-count-${requestedSlaveId}`,
+        `Không tìm thấy mã "${requestedSlaveId}"`,
+      );
       resetSensorDisplay();
       return;
     }
 
-    const latest = nodeLogs[0];
-    const tempVal = formatMetric(latest.temperature, 1);
-    const humVal = formatMetric(latest.humidity, 1);
-    const soilVal = formatMetric(latest.soil_moisture, 1);
-    const lightVal = formatMetric(latest.light_lux, 0);
-    const batVal = formatMetric(latest.battery, 0);
-
-    safeSetInnerText("card-temp", `${tempVal} °C`);
-    safeSetInnerText("card-humidity", `${humVal} %`);
-    safeSetInnerText("card-soil", `${soilVal} %`);
-    safeSetInnerText("card-light", `${lightVal} Lux`);
-    safeSetInnerText("card-battery", `${batVal} %`);
-
-    safeSetInnerText(`slave-soil-${selectedSlaveId}`, `${soilVal} %`);
-    safeSetInnerText(`slave-temp-${selectedSlaveId}`, `${tempVal} °C`);
-
-    updateChart(nodeLogs);
+    // Lưu vào bộ nhớ đệm 10 bản ghi gần nhất của riêng Node con này
+    nodeHistoryCache[requestedSlaveId] = strictNodeLogs;
+    applyNodeLogsToUI(requestedSlaveId, strictNodeLogs);
   } catch (err) {
-    console.error("Lỗi dữ liệu cảm biến:", err);
+    console.error("Lỗi đọc dữ liệu từ Supabase:", err);
   }
 }
 
@@ -560,11 +647,14 @@ async function sendChatMessage() {
 }
 
 // ==========================================
-// 7. CẤU HÌNH BIỂU ĐỒ CHART.JS
+// 7. CẤU HÌNH BIỂU ĐỒ CHART.JS (10 LẦN GẦN NHẤT)
 // ==========================================
 function initChart() {
   const canvas = document.getElementById("sensorChart");
   if (!canvas) return;
+  if (chart) {
+    chart.destroy();
+  }
   const ctx = canvas.getContext("2d");
   chart = new Chart(ctx, {
     type: "line",
@@ -614,6 +704,7 @@ function updateChart(logs) {
     new Date(l.created_at).toLocaleTimeString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     }),
   );
   chart.data.datasets[0].data = reversed.map((l) =>
@@ -631,6 +722,7 @@ function updateChart(logs) {
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
 window.fetchSensorData = fetchSensorData;
+window.resetSensorDisplay = resetSensorDisplay;
 window.renderChildNodesUI = renderChildNodesUI;
 window.renderMasterPumpAndChildNodes = renderChildNodesUI;
 window.openAddSlaveModal = openAddSlaveModal;
